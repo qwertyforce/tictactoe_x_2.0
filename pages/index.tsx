@@ -5,7 +5,7 @@ import NavBar from '../components/NavBar'
 import EmailSignIn from '../components/EmailSignIn'
 import EmailSignUp from '../components/EmailSignUp'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {faGoogle,faVk} from '@fortawesome/free-brands-svg-icons'
+import {faGoogle,faGithub} from '@fortawesome/free-brands-svg-icons'
 import {faPlay,faEnvelopeOpen,faUserSecret} from '@fortawesome/free-solid-svg-icons'
 
 import {Fragment,useState} from 'react'
@@ -27,8 +27,8 @@ export default function Home(props) {
    }else{
     return (
     <Fragment>
-    <Button href="https://backend.4battle.ru:8080/login_google" variant="danger" className="mr-3" ><FontAwesomeIcon icon={faGoogle}/> Google</Button> 
-    <Button href="https://backend.4battle.ru:8080/login_vk" variant="primary" className="mr-3"><FontAwesomeIcon icon={faVk}/> Vkontakte</Button> 
+    <Button href="/auth/google" variant="danger" className="mr-3" ><FontAwesomeIcon icon={faGoogle}/> Google</Button> 
+    <Button href="/auth/github" variant="primary" className="mr-3"><FontAwesomeIcon icon={faGithub}/> Github</Button> 
     <Button variant="secondary" className="mr-3" onClick={handleOpenSignIn}><FontAwesomeIcon icon={faEnvelopeOpen}/> E-mail</Button> 
     <Button variant="info"><FontAwesomeIcon icon={faUserSecret}/> Guest play</Button> 
     </Fragment>
@@ -51,9 +51,10 @@ export default function Home(props) {
   )
 }
 export async function getServerSideProps(context) {
+  console.log(context.req.session?.authed)
   return {
       props: {
-          authed: false
+          authed:  Boolean(context.req.session?.authed && context.req.session?.user_id) 
       }
   }
 }
