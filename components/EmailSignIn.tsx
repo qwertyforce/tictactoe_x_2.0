@@ -2,23 +2,44 @@ import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button' 
 import Form from 'react-bootstrap/Form' 
 import {Fragment,useState} from 'react'
+import { useRouter } from 'next/router'
+import axios from 'axios';
 
 export default function EmailSignIn(props) {
+    const router = useRouter()
     const [validated, setValidated] = useState(false);
-
-  const handleSubmit = (event) => {
-    const form = event.currentTarget;
-    if (form.checkValidity() === false) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    const formData = new FormData(event.target),
-                formDataObj = Object.fromEntries(formData.entries())
-          console.log(formDataObj)
-    setValidated(true);
-  };
+    const [isLoading, setLoading] = useState(false);
   
-    const openSignUp=()=>{
+    const handleSubmit = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setLoading(true);
+        const form = event.currentTarget;
+        if (form.checkValidity() === false) {
+            setLoading(false);
+        }
+        const formData = new FormData(event.target)
+        const formDataObj = Object.fromEntries(formData.entries())
+        const login_data = { email: formDataObj.email, password: formDataObj.password}
+        axios(`/login`, {
+            method: "post",
+            data: login_data,
+            withCredentials: true
+          }).then((resp) => {
+            router.push("/");
+            console.log(resp)
+          }).catch((err) => {
+            if (err.response.data.message) {
+                alert(err.response.data.message)
+              console.log(err.response)
+            } else {
+              alert("Unknown error")
+            }
+          })
+        console.log(formDataObj)
+        setValidated(true);
+    };
+    const openSignUp = () => {
         props.handleClose()
         props.handleOpenSignUp()
     }
@@ -40,7 +61,7 @@ export default function EmailSignIn(props) {
                         <Form.Control required type="password" placeholder="Password" name="password"/>
                     </Form.Group>
                     <Modal.Footer style={{ padding: "0px", border: "0px" }}>
-                        <Button variant="primary" type="submit" block>Login</Button>
+                        <Button disabled={isLoading} variant="primary" type="submit" block>{isLoading ? 'Logging in...' : 'Login'}</Button>
                     </Modal.Footer>
                 </Modal.Body>
             </Form>
