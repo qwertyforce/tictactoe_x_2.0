@@ -51,8 +51,7 @@ export default function Home(props) {
   )
 }
 export async function getServerSideProps(context) {
-  console.log(context.req.session?.authed)
-  return {
+    return {
       props: {
           authed:  Boolean(context.req.session?.authed && context.req.session?.user_id) 
       }
