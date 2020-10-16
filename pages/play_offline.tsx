@@ -3,6 +3,7 @@ import Container from 'react-bootstrap/Container'
 import Row from 'react-bootstrap/Row' 
 
 import Game_Info from '../components/Game_Info'
+import Game from '../components/Game'
 import NavBar from '../components/NavBar'
 export default function Home(props) {
  
@@ -11,8 +12,8 @@ export default function Home(props) {
       <NavBar/>
       <Container fluid>
   <Row>
-    
     <Game_Info/>
+    <Game/>
   </Row>
 </Container>
     </div>

@@ -6,7 +6,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUserAlt } from '@fortawesome/free-solid-svg-icons'
 import styles from "../styles/GameInfo.module.css"
 import { useState } from 'react'
-export default function nav_bar(props) {
+
+export default function GameInfo(props) {
     const [selectedItem, setSelectedItem] = useState("");
     console.log(props)
     const alertClicked = (e) => {
