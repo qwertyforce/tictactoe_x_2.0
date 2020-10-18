@@ -17,6 +17,8 @@ export default function EmailSignIn(props) {
         const form = event.currentTarget;
         if (form.checkValidity() === false) {
             setLoading(false);
+            setValidated(true);
+            return
         }
         const formData = new FormData(event.target)
         const formDataObj = Object.fromEntries(formData.entries())
