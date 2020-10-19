@@ -4,6 +4,7 @@ import Form from 'react-bootstrap/Form'
 import { useRouter } from 'next/router'
 import {Fragment,useState} from 'react'
 import axios from 'axios'
+import config from '../config/config'
 
 export default function EmailSingUp(props) {
     const router = useRouter()
