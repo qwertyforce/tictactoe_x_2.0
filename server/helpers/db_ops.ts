@@ -6,7 +6,7 @@ const options = {
     useNewUrlParser: true,
     useUnifiedTopology: true
 };
-const db_main = 'Scenery';
+const db_main = 'TicTacToeX';
 const client = new MongoClient(url, options);
 client.connect(function(err) {
     if (err) {
