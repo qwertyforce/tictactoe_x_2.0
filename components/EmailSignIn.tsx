@@ -23,18 +23,20 @@ export default function EmailSignIn(props) {
         }
         const formData = new FormData(event.target)
         const formDataObj = Object.fromEntries(formData.entries())
-        const login_data = { email: formDataObj.email, password: formDataObj.password, 'g-recaptcha-response': token }
         /*global grecaptcha*/ // defined in pages/_document.tsx\
         grecaptcha.ready(function () {
             grecaptcha.execute(config.recaptcha_site_key, { action: 'login' }).then(function (token) {
+                const login_data = { email: formDataObj.email, password: formDataObj.password, 'g-recaptcha-response': token }
                 axios(`/login`, {
                     method: "post",
                     data: login_data,
                     withCredentials: true
                 }).then((resp) => {
                     router.push("/");
-                    console.log(resp)
+                    setLoading(false);
+                    props.handleClose()
                 }).catch((err) => {
+                    setLoading(false);
                     if (err.response.data.message) {
                         alert(err.response.data.message)
                         console.log(err.response)
@@ -42,7 +44,6 @@ export default function EmailSignIn(props) {
                         alert("Unknown error")
                     }
                 })
-
             });
         })
     };
