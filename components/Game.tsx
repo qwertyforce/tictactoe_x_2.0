@@ -7,14 +7,14 @@ import { faUserAlt } from '@fortawesome/free-solid-svg-icons'
 import styles from "../styles/GameInfo.module.css"
 import { useEffect, useState,useRef } from 'react'
 
-function game(canvas,GameInfo){
+function game(canvas,GameInfo,setMargin){
     const Engine = new Worker("mtdf(10)_worker.js");
     const Game_Board = new Array(21).fill(null).map(() => new Array(21).fill(0))
     const Time_for_move = prompt("Enter the time for ai to think (in seconds)");
     if (Time_for_move === "0" || isNaN(parseInt(Time_for_move||"0"))) {
         location.reload();
     }
-
+    
     const c = canvas;
     let lineWidth =3;
     let g_cellSize:number;
@@ -41,9 +41,9 @@ function game(canvas,GameInfo){
     const offset = lineWidth / 2;
     const height = g_cellSize * Rows + (lineWidth);
     const width = g_cellSize * Columns + (lineWidth);
-    // if (window.innerWidth >= 767) {
-    //    store.commit("set_margin",((window.innerHeight-56)-height)/2) 
-    // } 
+    if (window.innerWidth >= 767) {
+        setMargin(((window.innerHeight - 56 - height) / 2).toString() + "px")
+    } 
     const scale = window.devicePixelRatio*2; 
     const ctx = c.getContext('2d');
     c.style.width = width + "px";
@@ -167,17 +167,14 @@ export default function Game(props) {
     const gameData=props.gameData
     const canvasRef = useRef(null)
     const [selectedItem, setSelectedItem] = useState("");
-    const [canvasWidth, setCanvasWidth] = useState(0);
-    const [canvasHeight, setCanvasHeight] = useState(0);
+    const [margin, setMargin] = useState("0px");
     useEffect(() => {
         console.log(gameData.GameInfoRef.current.clientWidth)
-        game(canvasRef.current,gameData.GameInfoRef.current)
-        setCanvasWidth(100)
-        setCanvasHeight(100)
+        game(canvasRef.current,gameData.GameInfoRef.current,setMargin)
       },[]);
     return (
         <Col md={7} style={{ padding: 0 }}>
-            <Row style={{ marginTop: "12px", marginBottom: "12px" }}>
+            <Row className="justify-content-center" style={{ marginTop: margin, marginBottom: margin}}>
                 <canvas  ref={canvasRef} id="myCanvas"></canvas>
             </Row>
         </Col>
