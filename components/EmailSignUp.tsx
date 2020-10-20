@@ -14,9 +14,11 @@ export default function EmailSingUp(props) {
         event.preventDefault();
         event.stopPropagation();
         setLoading(true);
+        setValidated(true);
         const form = event.currentTarget;
         if (form.checkValidity() === false) {
             setLoading(false);
+            return
         }
         const formData = new FormData(event.target)
         const formDataObj = Object.fromEntries(formData.entries())
@@ -24,24 +26,29 @@ export default function EmailSingUp(props) {
             alert("Passwords don't match")
             return
         }
-        const login_data = { email: formDataObj.email, password: formDataObj.password}
-        axios(`/login`, {
-            method: "post",
-            data: login_data,
-            withCredentials: true
-          }).then((resp) => {
-            router.push("/");
-            console.log(resp)
-          }).catch((err) => {
-            if (err.response.data.message) {
-                alert(err.response.data.message)
-              console.log(err.response)
-            } else {
-              alert("Unknown error")
-            }
-          })
-        console.log(formDataObj)
-        setValidated(true);
+         /*global grecaptcha*/ // defined in pages/_document.tsx\
+         grecaptcha.ready(function () {
+            grecaptcha.execute(config.recaptcha_site_key, { action: 'login' }).then(function (token) {
+                const signup_data = { email: formDataObj.email, password: formDataObj.password, 'g-recaptcha-response': token }
+                axios(`/signup`, {
+                    method: "post",
+                    data: signup_data,
+                    withCredentials: true
+                }).then((resp) => {
+                    setLoading(false);
+                    alert(resp.data.message)
+                }).catch((err) => {
+                    setLoading(false);
+                    if (err.response.data.message) {
+                        alert(err.response.data.message)
+                        console.log(err.response)
+                    } else {
+                        alert("Unknown error")
+                    }
+                })
+            });
+        })
+        console.log(formDataObj)  
     };
 
     return (
