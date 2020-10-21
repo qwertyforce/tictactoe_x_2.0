@@ -10,7 +10,7 @@ export default function EmailSignIn(props) {
     const router = useRouter()
     const [validated, setValidated] = useState(false);
     const [isLoading, setLoading] = useState(false);
-    const handleSubmit = (event, token) => {
+    const handleSubmit = (event) => {
         event.preventDefault();
         event.stopPropagation();
         setLoading(true);
@@ -23,7 +23,7 @@ export default function EmailSignIn(props) {
         }
         const formData = new FormData(event.target)
         const formDataObj = Object.fromEntries(formData.entries())
-        /*global grecaptcha*/ // defined in pages/_document.tsx\
+        /*global grecaptcha*/ // defined in pages/_document.tsx
         grecaptcha.ready(function () {
             grecaptcha.execute(config.recaptcha_site_key, { action: 'login' }).then(function (token) {
                 const login_data = { email: formDataObj.email, password: formDataObj.password, 'g-recaptcha-response': token }
