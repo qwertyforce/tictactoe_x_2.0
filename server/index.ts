@@ -8,11 +8,8 @@ const MongoStore = connectMongo(session);
 import rateLimit from "express-rate-limit";
 import cors from 'cors';
 import mongoSanitize  from 'express-mongo-sanitize'
-//import https from 'https';
-//import path from 'path';
 import { check } from 'express-validator';
 import { RecaptchaV3 } from 'express-recaptcha'
-//import fs from 'fs';
 import config from '../config/config'
 
 const PASS_MIN = 8;
@@ -78,14 +75,10 @@ next_app.prepare().then(() => {
   app.use(mongoSanitize());
    ///////////////
 
-
   api_router.get('/auth/google', google_oauth_redirect)
   api_router.get('/auth/github', github_oauth_redirect)
   api_router.get('/auth/github/callback', github_oauth_callback)
   api_router.get('/auth/google/callback', google_oauth_callback)
-
-
-
 
   api_router.post('/signup', [
     recaptcha.middleware.verify,

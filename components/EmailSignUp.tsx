@@ -1,13 +1,11 @@
 import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button' 
 import Form from 'react-bootstrap/Form' 
-import { useRouter } from 'next/router'
 import {Fragment,useState} from 'react'
 import axios from 'axios'
 import config from '../config/config'
 
 export default function EmailSingUp(props) {
-    const router = useRouter()
     const [validated, setValidated] = useState(false);
     const [isLoading, setLoading] = useState(false)
     const handleSubmit = (event) => {
@@ -26,9 +24,9 @@ export default function EmailSingUp(props) {
             alert("Passwords don't match")
             return
         }
-         /*global grecaptcha*/ // defined in pages/_document.tsx\
+         /*global grecaptcha*/ // defined in pages/_document.tsx
          grecaptcha.ready(function () {
-            grecaptcha.execute(config.recaptcha_site_key, { action: 'login' }).then(function (token) {
+            grecaptcha.execute(config.recaptcha_site_key, { action: 'signup' }).then(function (token) {
                 const signup_data = { email: formDataObj.email, password: formDataObj.password, 'g-recaptcha-response': token }
                 axios(`/signup`, {
                     method: "post",

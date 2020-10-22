@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import db_ops from './../helpers/db_ops'
 import { validationResult } from 'express-validator'
 import crypto_ops from './../helpers/crypto_ops'
@@ -13,7 +12,6 @@ async function login(req:Request,res:Response) {
         });
     }
     const errors = validationResult(req);
-    console.log(errors)
     const MESSAGE_FOR_AUTH_ERROR = "This combination of email and password is not found";
     if (!errors.isEmpty()) {
         return res.status(422).json({

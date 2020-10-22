@@ -21,7 +21,7 @@ export default function nav_bar(props) {
             <Navbar.Toggle aria-controls="responsive-navbar-nav" />
             <Navbar.Collapse id="responsive-navbar-nav">
                 <Nav className="mr-auto">
-                    <Nav.Link href="/play_offline">Game against AI</Nav.Link>
+                    <Nav.Link href="/play_offline">Play against AI</Nav.Link>
                     <Nav.Link href="/leaderboard">Leaderboard</Nav.Link>
                     <Nav.Link href="/stats">Server Statistics</Nav.Link>
                    {profile_and_stats()}

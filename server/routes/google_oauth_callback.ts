@@ -15,7 +15,6 @@ async function google_oauth_callback(req:Request, res:Response) {
         })
         const access_token = result.data.access_token
         console.log(result.data.access_token)
-
         const result2 = await axios.get(`https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses&access_token=${access_token}`)
         console.log(result2.data)
         const google_id = result2.data.resourceName;

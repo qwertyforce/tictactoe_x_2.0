@@ -10,25 +10,31 @@ import { useState } from 'react'
 
 export default function GameInfo(props) {
     let GameData=props.gameData
-    const usernames=GameData.players.map((username:string)=><p className={styles.username}><FontAwesomeIcon icon={faUserAlt} /> {username}</p>);
+    console.log(GameData)
+    const usernames = GameData.players.map((player: { username: string,color: string }) => {
+        return(<p key={"_"+player.username} className={styles[player.color]}>
+            <FontAwesomeIcon icon={faUserAlt} /> {player.username + ((GameData.player_turn===player.username)?"<---":"")}
+        </p>)
+    });
+    console.log(usernames)
     const [selectedItem, setSelectedItem] = useState("");
     console.log(props)
     const alertClicked = (e) => {
         setSelectedItem((selectedItem === e.target.id ? "" : e.target.id))
     }
     return (
-        <Col md={2} style={{ padding: 0 }} ref={props.gameData.GameInfoRef}>
+        <Col md={2} style={{ padding: 0 }} ref={GameData.GameInfoRef}>
             <Card>
                 <Card.Header>{`Time for move: ${GameData.time}s`}</Card.Header>
             </Card>
             <Card>
-                <Card.Header>{`Players (${props.current_player_count || 1} of ${props.max_player_count || 2})`}</Card.Header>
+                <Card.Header>{`Players (${GameData.current_player_count || 1} of ${GameData.max_player_count || 2})`}</Card.Header>
                 <Card.Body style={{ padding: 0 }}>
                     {usernames}
                 </Card.Body>
             </Card>
             <Card>
-                <Card.Header>{`Your Figure: ${props.figure || 'X'}`}</Card.Header>
+                <Card.Header>{`Your Figure: ${GameData.figure || 'X'}`}</Card.Header>
             </Card>
             {GameData.offline?(null):(
             <Card>

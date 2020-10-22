@@ -5,6 +5,7 @@ import config from '../../config/config'
 import { validationResult } from 'express-validator';
 import {Request, Response} from 'express';
 import { RecaptchaResponseV3 } from 'express-recaptcha/dist/interfaces';
+
 async function signup(req:Request,res:Response) {
     const recaptcha_score=(req.recaptcha as RecaptchaResponseV3)?.data?.score
     if (req.recaptcha?.error|| (typeof recaptcha_score==="number" && recaptcha_score<0.5)) {
@@ -29,7 +30,7 @@ async function signup(req:Request,res:Response) {
         console.log(link)
         mail_ops.send_activation_letter(email, link)
         res.json({
-            message: 'Registered successfully,please confirm your email.'
+            message: 'Registered successfully, please confirm your email.'
         })
     } else {
         console.log(users)
