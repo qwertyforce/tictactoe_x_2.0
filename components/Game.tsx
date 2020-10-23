@@ -19,8 +19,9 @@ function divide(numerator, denominator) {
     return quotient;
 }
 
-
-function game(canvas,setMargin,gameData,setGameData){
+let gameData;
+function game(canvas,setMargin,setGameData){
+    console.log("Game")
     const Engine = new Worker("mtdf(10)_worker.js");
     Engine.onmessage = function (e) {
         console.log(e.data.bestmove);
@@ -32,13 +33,15 @@ function game(canvas,setMargin,gameData,setGameData){
         console.log(`StateCacheHits: ${e.data.StateCacheHits}`)
         console.log(`StateCachePuts: ${e.data.StateCachePuts}`)
         console.log(e.data.firstMoves)
-        make_move("",e.data.bestmove.j, e.data.bestmove.i)
+        make_move(e.data.bestmove.j, e.data.bestmove.i,1)
     }
     const Game_Board = new Array(21).fill(null).map(() => new Array(21).fill(0))
-    const Time_for_move = parseInt(prompt("Enter the time for ai to think (in seconds)")||"0")
+    const Time_for_move = parseInt(prompt("Enter the time for ai to think (in seconds)")||"0")*1000
     if (Time_for_move === 0 || isNaN(Time_for_move)) {
         location.reload();
     }
+    const time_for_ai=Time_for_move/1000
+    const time_for_human=Time_for_move/10
     const c = canvas;
     let lineWidth =3;
     let g_cellSize:number;
@@ -78,9 +81,24 @@ function game(canvas,setMargin,gameData,setGameData){
     ctx.scale(scale, scale);
     ctx.lineWidth = lineWidth;
 
-    let prev_player;
+    let prev_player_idx;
     let prev_move_column;
     let prev_move_row;
+    init_grid()
+    if(gameData.current_player_idx===0){
+        setGameData((prevState) => ({
+            ...prevState,
+            time: time_for_human,
+        }));
+    }else{
+        setGameData((prevState) => ({
+            ...prevState,
+            time: time_for_ai,
+        }));
+        make_move(10,10,1);
+    }
+    
+    let timer = setInterval(timer_Func, 1000)
     c.addEventListener('click', function(ev) {
         if (gameData.player_turn === gameData.your_username && !Paused) {
             const of = c.getBoundingClientRect();
@@ -89,33 +107,13 @@ function game(canvas,setMargin,gameData,setGameData){
             const xx = divide(xz, g_cellSize);
             const yy = divide(yz, g_cellSize);
                 if (Game_Board[yy][xx] === 0) {
-                   make_move(xx,yy,gameData.your_username)
+                   make_move(xx,yy,gameData.your_player_idx)
                    console.log(xx, yy);
                 }
         }  
     }, false);
-
-    init_grid()
-
-    let player_turn_idx=gameData.players[gameData.player_turn]
-    const timer = setInterval(timer_F, 1000)
-
-
-    function timer_F() {
-        if (gameData.time > 0) {
-            gameData.time-=1;
-            setGameData(gameData)
-        } else {
-           if(player_turn_idx===gameData.your_player_idx){
-              Move_transition();
-               Last_Turn = Now_turns;
-            if(Now_turns===b){
-                  Engine.postMessage([Game_Board,1,Time_for_move]);
-                }
-           }
-              
-        }
-    }
+   
+    
 
     function init_grid(){
         ctx.clearRect(0, 0, width, height);
@@ -136,59 +134,83 @@ function game(canvas,setMargin,gameData,setGameData){
         }
     }
 
+    function timer_Func() {
+        console.log(gameData.time)
+        if (gameData.time > 0) {
+            setGameData((prevState) => ({
+                ...prevState,
+                time: prevState.time-1,
+              }));
+           // console.log(gameData)
+            }
+        // } else {
+        //     if (player_turn_idx === gameData.your_player_idx) {
+        //         Move_transition();
+        //         Engine.postMessage([Game_Board, 1, Time_for_move]);
+        //     }
+        // }
+    }
+
+    
+
     function Move_transition() {
-        if(player_turn_idx===gameData.your_player_idx){
-           gameData.time=Time_for_move/10
-           setGameData(gameData)
+        if(gameData.current_player_idx===gameData.your_player_idx){
+            setGameData((prevState) => ({
+                ...prevState,
+                time: time_for_ai,
+              }));
         }else{
-            gameData.time=Time_for_move/1000
-            setGameData(gameData)
+            setGameData((prevState) => ({
+                ...prevState,
+                time: time_for_human,
+              }));
         } 
          clearInterval(timer);
-        //  timer = setInterval(timer_F, 1000);
-
-         if (player_turn_idx === gameData.players.length - 1) {
-            player_turn_idx = 0;
-             while (gameData.players[player_turn_idx] === null) {
-                player_turn_idx += 1;
+         timer = setInterval(timer_Func, 1000);
+         if (gameData.current_player_idx === gameData.players.length - 1) {
+            gameData.current_player_idx = 0;
+             while (gameData.players[gameData.current_player_idx] === null) {
+                gameData.current_player_idx += 1;
              }
          } else {
-            player_turn_idx += 1;
-             while (gameData.players[player_turn_idx] === null) {
-                 if (player_turn_idx === gameData.players.length - 1) {
-                    player_turn_idx = 0;
+            gameData.current_player_idx += 1;
+             while (gameData.players[gameData.current_player_idx] === null) {
+                 if (gameData.current_player_idx === gameData.players.length - 1) {
+                    gameData.current_player_idx = 0;
                      continue;
                  };
-                 player_turn_idx += 1;
+                 gameData.current_player_idx += 1;
              }
          }
+        setGameData({...gameData})
         //  if (player_turn_idx == gameData.players[gameData.your_username] && localStorage.getItem('sound') == "true") {
         //      audio.play();
         //  }
      }
 
-    function make_move(column, row, username) {
+    function make_move(column, row, player_idx) {
         if ((prev_move_column !== null) && (prev_move_column !== undefined)) {
-            ctx.fillStyle = colorOfplayer(prev_player);
+            ctx.fillStyle = colorOfplayer(prev_player_idx);
             drawBox(prev_move_column, prev_move_row);
         }
         prev_move_column = column;
         prev_move_row = row;
-        prev_player = username;
+        prev_player_idx = player_idx;
         console.log(Game_Board)
-        Game_Board[row][column] = username;
-        const set_figure = figureOfplayer(username);
+        Game_Board[row][column] = (player_idx===0)?-1:1;
+        const set_figure = figureOfplayer(player_idx);
+        console.log(set_figure)
         set_figure(column, row);
-        if (checkWon(username)) {
+        if (check_win(player_idx)) {
             clearInterval(timer);
         }
         Move_transition();
-        if (prev_player === "You") {
-            Engine.postMessage([Game_Board, 1, Time_for_move]);
+        if (prev_player_idx === gameData.your_player_idx) {
+            Engine.postMessage([Game_Board, 1, Time_for_move]); //time in ms
         }
     }
-    function colorOfplayer(username) {
-        const color=gameData.players.find((el)=>el.username===username).color
+    function colorOfplayer(player_idx) {
+        const color=gameData.players[player_idx].color
         switch (color) {
             case 'blue':
                 return "rgba(" + 0 + "," + 0 + "," + 255 + "," + 0.5 + ")";
@@ -201,8 +223,8 @@ function game(canvas,setMargin,gameData,setGameData){
         };
     }
    
-    function figureOfplayer(username) {
-        const figure=gameData.players.find((el)=>el.username===username).figure
+    function figureOfplayer(player_idx) {
+        const figure=gameData.players[player_idx].figure
         switch (figure) {
             case "circle":
                 return (x, y) => {
@@ -275,7 +297,7 @@ function game(canvas,setMargin,gameData,setGameData){
     function drawBox (x, y) {
         ctx.fillRect(x * g_cellSize + offset + lineWidth/2, y * g_cellSize + offset + lineWidth/2, g_cellSize - lineWidth, g_cellSize - lineWidth);
     };
-    function checkWon(id) {
+    function check_win(player_idx) {
         let r, g, h, won, xx, yy, xs, ys;
         for (let i = 0; i < Game_Board.length; i++) {
             for (let j = 0; j < Game_Board[i].length; j++) {
@@ -293,7 +315,7 @@ function game(canvas,setMargin,gameData,setGameData){
                             won = false;
                             break;
                         }
-                        if (Game_Board[xx][yy] !== players[id]) {
+                        if (Game_Board[xx][yy] !== (player_idx===0)?-1:1) {
                             won = false;
                             break;
                         }
@@ -348,15 +370,17 @@ function game(canvas,setMargin,gameData,setGameData){
         drawBox(x, y);
     }
 }
+
 export default function Game(props) {
-    const gameData=props.gameData
+    gameData=props.gameData
     const setGameData=props.setGameData
     const canvasRef = useRef(null)
-    const [selectedItem, setSelectedItem] = useState("");
     const [margin, setMargin] = useState("0px");
     useEffect(() => {
         console.log(gameData.GameInfoRef.current.clientWidth)
-        game(canvasRef.current,setMargin,gameData,setGameData)
+        //  const x={...gameData,time:14}
+        // setGameData(x)
+        game(canvasRef.current,setMargin,setGameData)
       },[]);
     return (
         <Col md={7} style={{ padding: 0 }}>

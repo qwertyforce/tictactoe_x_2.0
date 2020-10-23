@@ -3,20 +3,32 @@ import Card from 'react-bootstrap/Card'
 import Form from 'react-bootstrap/Form'
 import ListGroup from 'react-bootstrap/ListGroup'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faUserAlt } from '@fortawesome/free-solid-svg-icons'
+import { faUserAlt,faTimes,faCircle,faCaretUp,faSquare} from '@fortawesome/free-solid-svg-icons'
 import styles from "../styles/GameInfo.module.css"
 import GameDataContext from './GameDataContext'
 import { useState } from 'react'
 
 export default function GameInfo(props) {
     let GameData=props.gameData
-    console.log(GameData)
-    const usernames = GameData.players.map((player: { username: string,color: string }) => {
+    // console.log(GameData)
+    const usernames = GameData.players.map((player,idx) => {
         return(<p key={"_"+player.username} className={styles[player.color]}>
-            <FontAwesomeIcon icon={faUserAlt} /> {player.username + ((GameData.player_turn===player.username)?"<---":"")}
+            <FontAwesomeIcon icon={faUserAlt} /> {player.username + ((GameData.current_player_idx===idx)?"<---":"")}
         </p>)
     });
-    console.log(usernames)
+    const YourFigure=()=>{
+        switch (GameData.players[GameData.your_player_idx].figure) {
+            case "cross":
+                return <FontAwesomeIcon icon={faTimes} />
+            case "circle":
+                return <FontAwesomeIcon icon={faCircle} />
+            case "triangle":
+                return <FontAwesomeIcon icon={faCaretUp} />
+            case "square":
+                return <FontAwesomeIcon icon={faSquare} />
+        }
+
+    }
     const [selectedItem, setSelectedItem] = useState("");
     console.log(props)
     const alertClicked = (e) => {
@@ -34,7 +46,7 @@ export default function GameInfo(props) {
                 </Card.Body>
             </Card>
             <Card>
-                <Card.Header>{`Your Figure: ${GameData.figure || 'X'}`}</Card.Header>
+                <Card.Header>Your Figure:{YourFigure()}</Card.Header>
             </Card>
             {GameData.offline?(null):(
             <Card>
