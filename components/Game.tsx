@@ -6,21 +6,22 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUserAlt } from '@fortawesome/free-solid-svg-icons'
 import styles from "../styles/GameInfo.module.css"
 import { useEffect, useState,useRef } from 'react'
+import GameOverModal from './GameOverModal'
 
 function randomInteger(min, max) {
-    var rand = min + Math.random() * (max + 1 - min);
+    let rand = min + Math.random() * (max + 1 - min);
     rand = Math.floor(rand);
     return rand;
 }
 
 function divide(numerator, denominator) {
-    var remainder = numerator % denominator;
-    var quotient = (numerator - remainder) / denominator;
+    const remainder = numerator % denominator;
+    const quotient = (numerator - remainder) / denominator;
     return quotient;
 }
 
 let gameData;
-function game(canvas,setMargin,setGameData){
+function game(canvas,setMargin,setGameData,game_over){
     console.log("Game")
     const Engine = new Worker("mtdf(10)_worker.js");
     Engine.onmessage = function (e) {
@@ -38,6 +39,7 @@ function game(canvas,setMargin,setGameData){
     const Game_Board = new Array(21).fill(null).map(() => new Array(21).fill(0))
     const Time_for_move = parseInt(prompt("Enter the time for ai to think (in seconds)")||"0")*1000
     if (Time_for_move === 0 || isNaN(Time_for_move)) {
+        alert(Time_for_move)
         location.reload();
     }
     const time_for_ai=Time_for_move/1000
@@ -45,7 +47,7 @@ function game(canvas,setMargin,setGameData){
     const c = canvas;
     let lineWidth =3;
     let g_cellSize:number;
-    const InnerWidth = window.innerWidth -gameData.GameInfoRef.current.clientWidth
+    const InnerWidth = window.innerWidth - gameData.GameInfoRef.current.clientWidth
     console.log(InnerWidth)
     console.log(window.innerHeight)
     if (window.innerWidth < 767) {
@@ -65,6 +67,7 @@ function game(canvas,setMargin,setGameData){
     const FiguresToWin = 5;
     const Rows = 21;
     const Columns = 21;
+    let moves_made=0
     let Paused = false;
     const offset = lineWidth / 2;
     const height = g_cellSize * Rows + (lineWidth);
@@ -84,12 +87,14 @@ function game(canvas,setMargin,setGameData){
     let prev_player_idx;
     let prev_move_column;
     let prev_move_row;
+    let timer 
     init_grid()
     if(gameData.current_player_idx===0){
         setGameData((prevState) => ({
             ...prevState,
             time: time_for_human,
         }));
+        timer=setInterval(timer_Func, 1000)
     }else{
         setGameData((prevState) => ({
             ...prevState,
@@ -98,9 +103,8 @@ function game(canvas,setMargin,setGameData){
         make_move(10,10,1);
     }
     
-    let timer = setInterval(timer_Func, 1000)
     c.addEventListener('click', function(ev) {
-        if (gameData.player_turn === gameData.your_username && !Paused) {
+        if (gameData.current_player_idx === gameData.your_player_idx && !Paused) {
             const of = c.getBoundingClientRect();
             const xz = ev.clientX - of.left;
             const yz = ev.clientY - of.top;
@@ -139,21 +143,21 @@ function game(canvas,setMargin,setGameData){
         if (gameData.time > 0) {
             setGameData((prevState) => ({
                 ...prevState,
-                time: prevState.time-1,
-              }));
-           // console.log(gameData)
+                time: prevState.time - 1,
+            }));
+        }
+        else {
+            if (gameData.current_player_idx === gameData.your_player_idx) {
+                Move_transition();
+                Engine.postMessage([Game_Board, 1, Time_for_move]);
             }
-        // } else {
-        //     if (player_turn_idx === gameData.your_player_idx) {
-        //         Move_transition();
-        //         Engine.postMessage([Game_Board, 1, Time_for_move]);
-        //     }
-        // }
+        }
     }
 
     
 
     function Move_transition() {
+        clearInterval(timer);
         if(gameData.current_player_idx===gameData.your_player_idx){
             setGameData((prevState) => ({
                 ...prevState,
@@ -165,27 +169,25 @@ function game(canvas,setMargin,setGameData){
                 time: time_for_human,
               }));
         } 
-         clearInterval(timer);
+         setGameData((prevState) => {
+            if (prevState.current_player_idx === prevState.players.length - 1) {
+                prevState.current_player_idx = 0;
+                 while (prevState.players[prevState.current_player_idx] === null) {
+                    prevState.current_player_idx += 1;
+                 }
+             } else {
+                prevState.current_player_idx += 1;
+                 while (prevState.players[prevState.current_player_idx] === null) {
+                     if (prevState.current_player_idx === prevState.players.length - 1) {
+                        prevState.current_player_idx = 0;
+                         continue;
+                     };
+                     prevState.current_player_idx += 1;
+                 }
+             }
+             return {...prevState}
+         })
          timer = setInterval(timer_Func, 1000);
-         if (gameData.current_player_idx === gameData.players.length - 1) {
-            gameData.current_player_idx = 0;
-             while (gameData.players[gameData.current_player_idx] === null) {
-                gameData.current_player_idx += 1;
-             }
-         } else {
-            gameData.current_player_idx += 1;
-             while (gameData.players[gameData.current_player_idx] === null) {
-                 if (gameData.current_player_idx === gameData.players.length - 1) {
-                    gameData.current_player_idx = 0;
-                     continue;
-                 };
-                 gameData.current_player_idx += 1;
-             }
-         }
-        setGameData({...gameData})
-        //  if (player_turn_idx == gameData.players[gameData.your_username] && localStorage.getItem('sound') == "true") {
-        //      audio.play();
-        //  }
      }
 
     function make_move(column, row, player_idx) {
@@ -193,20 +195,27 @@ function game(canvas,setMargin,setGameData){
             ctx.fillStyle = colorOfplayer(prev_player_idx);
             drawBox(prev_move_column, prev_move_row);
         }
+        moves_made++
         prev_move_column = column;
         prev_move_row = row;
         prev_player_idx = player_idx;
         console.log(Game_Board)
         Game_Board[row][column] = (player_idx===0)?-1:1;
         const set_figure = figureOfplayer(player_idx);
-        console.log(set_figure)
         set_figure(column, row);
         if (check_win(player_idx)) {
             clearInterval(timer);
-        }
-        Move_transition();
-        if (prev_player_idx === gameData.your_player_idx) {
-            Engine.postMessage([Game_Board, 1, Time_for_move]); //time in ms
+        }else{
+            if(moves_made===21*21){
+                Paused = true;
+                clearInterval(timer);
+                game_over("draw")
+            }else{
+                Move_transition();
+                if (prev_player_idx === gameData.your_player_idx) {
+                    Engine.postMessage([Game_Board, 1, Time_for_move]); //time in ms
+                }
+            }
         }
     }
     function colorOfplayer(player_idx) {
@@ -285,8 +294,8 @@ function game(canvas,setMargin,setGameData){
         ctx.closePath();
         ctx.stroke();
     };
-    function drawWinLine(xs, ys, r, g, b, winner) {
-        const Winnerfigure = figureOfplayer(winner);
+    function drawWinLine(xs, ys, r, g, b, player_idx) {
+        const Winnerfigure = figureOfplayer(player_idx);
         for (let i = 0; i < (xs.length); i += 1) {
             clear_cell(xs[i], ys[i]);
             Winnerfigure(xs[i], ys[i]);
@@ -315,7 +324,8 @@ function game(canvas,setMargin,setGameData){
                             won = false;
                             break;
                         }
-                        if (Game_Board[xx][yy] !== (player_idx===0)?-1:1) {
+                        const piece = (player_idx===0)?(-1):(1)
+                        if (Game_Board[xx][yy] !== piece) {
                             won = false;
                             break;
                         }
@@ -328,7 +338,7 @@ function game(canvas,setMargin,setGameData){
                         console.log("won");
                         console.log(xx);
                         console.log(yy);
-                        drawwon(xs,ys,id);
+                        draw_won(xs,ys,player_idx);
                         return true;
                     }
                 }
@@ -336,29 +346,10 @@ function game(canvas,setMargin,setGameData){
         }
     };
     
-    function drawwon(xs, ys, winner) {
+    function draw_won(xs, ys, player_idx) {
         Paused = true;
-        drawWinLine(ys, xs, 255, 20, 147, winner);
-        window.iziToast.show({
-            theme: 'dark',
-            timeout: false,
-            close: false,
-            drag: false,
-            message: "Do you want to play another one?",
-            layout: 2,
-            position: 'center', // bottomRight, bottomLeft, topRight, topLeft, topCenter, bottomCenter
-            progressBarColor: 'rgb(0, 255, 184)',
-            buttons: [
-                ['<button>Ok</button>', function (instance, toast) {
-                    location.reload();
-                }],
-                ['<button>Close</button>', function (instance, toast) {
-                    instance.hide({
-                        transitionOut: 'fadeOutUp'
-                    }, toast, 'close', 'btn2');
-                }]
-            ]
-        });
+        drawWinLine(ys, xs, 255, 20, 147, player_idx);
+        game_over((player_idx===gameData.your_player_idx)?"won":"lost")
     }
 
     function clear_cell(x, y) {
@@ -372,21 +363,26 @@ function game(canvas,setMargin,setGameData){
 }
 
 export default function Game(props) {
+    const [openGameOverModal, setOpenGameOverModal] = useState(false);
+    const [gameResult, setGameResult] = useState(false);
+    const handleCloseGameOverModal = () => setOpenGameOverModal(false);
+    const game_over=(result)=>{
+        setGameResult(result)
+        setOpenGameOverModal(true)
+    }
     gameData=props.gameData
     const setGameData=props.setGameData
     const canvasRef = useRef(null)
     const [margin, setMargin] = useState("0px");
     useEffect(() => {
-        console.log(gameData.GameInfoRef.current.clientWidth)
-        //  const x={...gameData,time:14}
-        // setGameData(x)
-        game(canvasRef.current,setMargin,setGameData)
+        game(canvasRef.current,setMargin,setGameData,game_over)
       },[]);
     return (
         <Col md={7} style={{ padding: 0 }}>
             <Row className="justify-content-center" style={{ marginTop: margin, marginBottom: margin}}>
                 <canvas  ref={canvasRef} id="myCanvas"></canvas>
             </Row>
+            <GameOverModal result={gameResult} open={openGameOverModal} handleClose={handleCloseGameOverModal}/>
         </Col>
     )
 }

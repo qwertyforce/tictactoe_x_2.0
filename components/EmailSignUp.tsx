@@ -1,7 +1,7 @@
 import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button' 
 import Form from 'react-bootstrap/Form' 
-import {Fragment,useState} from 'react'
+import {useState} from 'react'
 import axios from 'axios'
 import config from '../config/config'
 
@@ -50,7 +50,6 @@ export default function EmailSingUp(props) {
     };
 
     return (
-        <Fragment>
         <Modal show={props.open} size="sm" onHide={props.handleClose}>
             <Modal.Header>
                 <Modal.Title>Sign Up</Modal.Title>
@@ -75,7 +74,6 @@ export default function EmailSingUp(props) {
                 </Modal.Body>
             </Form>
         </Modal>
-        </Fragment>
     )
 }
  

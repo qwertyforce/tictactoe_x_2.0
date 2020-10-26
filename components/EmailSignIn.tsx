@@ -1,7 +1,7 @@
 import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form'
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/router'
 import axios from 'axios';
 import config from '../config/config'
@@ -53,7 +53,6 @@ export default function EmailSignIn(props) {
         props.handleOpenSignUp()
     }
     return (
-        <Fragment>
             <Modal show={props.open} size="sm" onHide={props.handleClose}>
                 <Modal.Header>
                     <Modal.Title>Sign in</Modal.Title>
@@ -75,6 +74,5 @@ export default function EmailSignIn(props) {
                     </Modal.Body>
                 </Form>
             </Modal>
-        </Fragment>
     )
 }

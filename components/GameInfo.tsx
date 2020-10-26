@@ -12,25 +12,25 @@ export default function GameInfo(props) {
     let GameData=props.gameData
     // console.log(GameData)
     const usernames = GameData.players.map((player,idx) => {
-        return(<p key={"_"+player.username} className={styles[player.color]}>
+        return(<p key={"_"+player.username} className={`${styles[player.color]} ${styles.username}`}>
             <FontAwesomeIcon icon={faUserAlt} /> {player.username + ((GameData.current_player_idx===idx)?"<---":"")}
         </p>)
     });
     const YourFigure=()=>{
         switch (GameData.players[GameData.your_player_idx].figure) {
             case "cross":
-                return <FontAwesomeIcon icon={faTimes} />
+                return <FontAwesomeIcon className={styles.vertical_align_middle} icon={faTimes} />
             case "circle":
-                return <FontAwesomeIcon icon={faCircle} />
+                return <FontAwesomeIcon className={styles.vertical_align_middle} icon={faCircle} />
             case "triangle":
-                return <FontAwesomeIcon icon={faCaretUp} />
+                return <FontAwesomeIcon className={styles.vertical_align_middle} icon={faCaretUp} />
             case "square":
-                return <FontAwesomeIcon icon={faSquare} />
+                return <FontAwesomeIcon className={styles.vertical_align_middle} icon={faSquare} />
         }
 
     }
     const [selectedItem, setSelectedItem] = useState("");
-    console.log(props)
+    // console.log(props)
     const alertClicked = (e) => {
         setSelectedItem((selectedItem === e.target.id ? "" : e.target.id))
     }
@@ -46,7 +46,7 @@ export default function GameInfo(props) {
                 </Card.Body>
             </Card>
             <Card>
-                <Card.Header>Your Figure:{YourFigure()}</Card.Header>
+                <Card.Header>Your Figure: {YourFigure()}</Card.Header>
             </Card>
             {GameData.offline?(null):(
             <Card>

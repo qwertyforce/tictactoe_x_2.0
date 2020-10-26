@@ -10,3 +10,10 @@
 .blue{
     color:rgb(0,0,255);
 }
+.username{
+    margin:0;
+    padding:10px;
+}
+.vertical_align_middle{
+    vertical-align: middle;
+}

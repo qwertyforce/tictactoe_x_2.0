@@ -29,7 +29,7 @@ const nav_bar=memo((props)=>{
         </Navbar>
     )
 },(prev,next)=>{
-    console.log(prev)
+    // console.log(prev)
     return true
 })
 export default nav_bar
