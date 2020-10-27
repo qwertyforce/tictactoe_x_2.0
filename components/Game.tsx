@@ -39,7 +39,6 @@ function game(canvas,setMargin,setGameData,game_over){
     const Game_Board = new Array(21).fill(null).map(() => new Array(21).fill(0))
     const Time_for_move = parseInt(prompt("Enter the time for ai to think (in seconds)")||"0")*1000
     if (Time_for_move === 0 || isNaN(Time_for_move)) {
-        alert(Time_for_move)
         location.reload();
     }
     const time_for_ai=Time_for_move/1000
@@ -117,8 +116,6 @@ function game(canvas,setMargin,setGameData,game_over){
         }  
     }, false);
    
-    
-
     function init_grid(){
         ctx.clearRect(0, 0, width, height);
         ctx.strokeStyle = '#8DA382';
@@ -139,7 +136,7 @@ function game(canvas,setMargin,setGameData,game_over){
     }
 
     function timer_Func() {
-        console.log(gameData.time)
+        // console.log(gameData.time)
         if (gameData.time > 0) {
             setGameData((prevState) => ({
                 ...prevState,
@@ -153,8 +150,6 @@ function game(canvas,setMargin,setGameData,game_over){
             }
         }
     }
-
-    
 
     function Move_transition() {
         clearInterval(timer);
@@ -378,7 +373,7 @@ export default function Game(props) {
         game(canvasRef.current,setMargin,setGameData,game_over)
       },[]);
     return (
-        <Col md={7} style={{ padding: 0 }}>
+        <Col  md={9} style={{ padding: 0 }}>
             <Row className="justify-content-center" style={{ marginTop: margin, marginBottom: margin}}>
                 <canvas  ref={canvasRef} id="myCanvas"></canvas>
             </Row>

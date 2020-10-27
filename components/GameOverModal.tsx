@@ -1,30 +1,33 @@
 import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button'
-import Form from 'react-bootstrap/Form'
-import { Fragment, useState } from 'react'
-import { useRouter } from 'next/router'
-import axios from 'axios';
-import config from '../config/config'
+
 
 export default function GameOverModal(props) {
-    // const router = useRouter()
-    // const [validated, setValidated] = useState(false);
-    // const [isLoading, setLoading] = useState(false);
+    const play_again=()=>{
+        location.reload()
+    }
+    const exit=()=>{
+        props.handleClose()
+    }
     const result=()=>{
         switch(props.result){
             case "won":
-                return "won"
+                return "You've won."
             case "lost":
-                return "lost"
+                return "You've lost."
             case "draw":
-                 return "draw"    
+                 return "Draw."    
         }
     }
     return (
-            <Modal show={props.open} size="sm" onHide={props.handleClose}>
-                     <Modal.Body>
-                     {result()}
-                    </Modal.Body>
-            </Modal>
+        <Modal show={props.open} size="sm" onHide={props.handleClose}>
+            <Modal.Body style={{display:"flex",alignItems:"center",flexDirection:"column"}}>
+                <div style={{marginBottom:"20px"}}>{result()}</div>
+                <div>
+                    <Button style={{marginRight:"10px"}} variant="outline-primary" onClick={play_again} >Play again</Button>
+                    <Button variant="outline-primary" onClick={exit}>Exit</Button>
+                </div>
+            </Modal.Body>
+        </Modal>
     )
 }
