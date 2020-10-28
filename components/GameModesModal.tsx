@@ -1,12 +1,22 @@
 import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form'
-import InputGroup from 'react-bootstrap/InputGroup'
 import { useState } from 'react'
+import { useRouter } from 'next/router'
 
 
+function generate_id(length) {
+    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const charactersLength = characters.length;
+    for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
+}
 
 export default function GameOverModal(props) {
+    const router = useRouter()
     const [gameMode, setGameMode] = useState("classic");
     const [privGameCheckBox, setPrivGameCheckbox] = useState(false);
     const [duelGameCheckBox, setDuelGameCheckbox] = useState(false);
@@ -37,6 +47,22 @@ export default function GameOverModal(props) {
         }
         return description
     }
+    const play=()=>{
+        let link="/play"
+        if(gameMode==="classic"){
+            link+="?gm=1"
+        }else{
+            link+="?gm=2"
+        }
+        if (privGameCheckBox) {
+            const pass=generate_id(12)
+            link+=`&pass=${pass}`
+        }
+        if (duelGameCheckBox) {
+            link+="&duel=1"
+        }
+        router.push(link)
+    }
     return (
         <Modal show={props.open} onHide={props.handleClose}>
             <Modal.Body style={{ display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
@@ -52,7 +78,7 @@ export default function GameOverModal(props) {
                 </div>
                 <p>{description()}</p>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Button variant="primary" type="submit">Play</Button>
+                    <Button variant="primary" onClick={play}>Play</Button>
                 </div>
             </Modal.Body>
         </Modal>

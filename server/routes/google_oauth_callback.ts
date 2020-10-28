@@ -25,8 +25,10 @@ async function google_oauth_callback(req:Request, res:Response) {
         if (users.length === 0) {
             const usr_id = await db_ops.activated_user.create_new_user_activated_google(google_id, google_email)
             req.session!.user_id = usr_id;
+            req.session!.username=""
         } else {
             req.session!.user_id = users[0].id;
+            req.session!.username=users[0].username
         }
         req.session!.authed = true;
         res.redirect(config.domain)

@@ -24,6 +24,7 @@ import github_oauth_redirect from './routes/github_oauth_redirect';
 import github_oauth_callback from './routes/github_oauth_callback';
 import google_oauth_callback from './routes/google_oauth_callback';
 import signup from './routes/signup';
+import signup from './routes/set_username';
 import login from './routes/login';
 import change_password from './routes/change_password';
 import forgot_password from './routes/forgot_password';
@@ -80,6 +81,15 @@ next_app.prepare().then(() => {
   api_router.get('/auth/github/callback', github_oauth_callback)
   api_router.get('/auth/google/callback', google_oauth_callback)
 
+
+  api_router.post('/set_username', [
+    recaptcha.middleware.verify,
+    check('username').isLength({
+      min: 1,
+      max: 16
+    }),
+  ], set_username)
+
   api_router.post('/signup', [
     recaptcha.middleware.verify,
     check('email').isEmail(),
@@ -105,6 +115,7 @@ next_app.prepare().then(() => {
       max: PASS_MAX
     }),
   ], change_password)
+  
 
   api_router.post('/forgot_pw', [
     recaptcha.middleware.verify,

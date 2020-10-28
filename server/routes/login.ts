@@ -31,6 +31,7 @@ async function login(req:Request,res:Response) {
         if (match) {
             if (users[0].activated === true) {
                 req.session!.authed = true;
+                req.session!.username=users[0].username
                 req.session!.user_id = users[0].id;
                 res.json({
                     message: "success"

@@ -41,6 +41,9 @@ export default function Home(props) {
       )
     }
   }
+  if(!props.has_username){
+
+  }
   return (
     <div>
       <NavBar authed={props.authed} />
@@ -60,7 +63,8 @@ export default function Home(props) {
 export async function getServerSideProps(context) {
   return {
     props: {
-      authed: Boolean(context.req.session?.authed && context.req.session?.user_id)
+      authed: Boolean(context.req.session?.authed && context.req.session?.user_id),
+      has_username: Boolean(context.req.session?.username!=="")
     }
   }
 }
