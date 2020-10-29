@@ -5,7 +5,7 @@ import {useState} from 'react'
 import axios from 'axios'
 import config from '../config/config'
 
-export default function EmailSingUp(props) {
+export default function EmailSignUp(props) {
     const [validated, setValidated] = useState(false);
     const [isLoading, setLoading] = useState(false)
     const handleSubmit = (event) => {

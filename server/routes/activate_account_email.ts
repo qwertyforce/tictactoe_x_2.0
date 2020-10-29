@@ -12,7 +12,6 @@ async function activate_account_email (req:Request, res:Response){
             if(act_users.length===0){  //if user doesn't exits
                 db_ops.activated_user.create_new_user_activated(users[0].email, users[0].password)
                 return res.redirect(config.domain)
-                // return res.send('<p>Your account is now activated. Visit <a href="http://localhost:3000/login">http://localhost:3000/login</a> to login in.</p>')
             }
         }
     }

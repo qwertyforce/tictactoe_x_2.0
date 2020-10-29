@@ -1,6 +1,5 @@
 import db_ops from './../helpers/db_ops'
 import { validationResult } from 'express-validator'
-import crypto_ops from './../helpers/crypto_ops'
 import { Request, Response } from 'express';
 import { RecaptchaResponseV3 } from 'express-recaptcha/dist/interfaces';
 
@@ -27,7 +26,8 @@ async function set_username(req: Request, res: Response) {
             if (regex.test(username)) {
                 const users = await db_ops.activated_user.find_user_by_username(username); //find users with the same username
                 if (users.length === 0) { //no users with same username exist
-                    db_ops.activated_user.set_username(user[0].user_id, username)
+                    req.session!.username=username
+                    db_ops.activated_user.set_username(user[0].id, username)
                     res.json({
                         message: "success"
                     })

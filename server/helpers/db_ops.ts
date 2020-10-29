@@ -68,9 +68,6 @@ async function updateDocument(collection_name:string,selector:Record<string,unkn
 //     return result
 // }
 
- 
-
-
 async function generate_id() {
     const id = new Promise((resolve, reject) => {
         crypto.randomBytes(32, async function(ex, buffer) {

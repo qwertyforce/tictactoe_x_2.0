@@ -5,17 +5,23 @@ import NavBar from '../components/NavBar'
 import EmailSignIn from '../components/EmailSignIn'
 import EmailSignUp from '../components/EmailSignUp'
 import GameModesModal from '../components/GameModesModal'
+import SetUsernameModal from '../components/SetUsernameModal'
+
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGoogle, faGithub } from '@fortawesome/free-brands-svg-icons'
 import { faPlay, faEnvelopeOpen, faUserSecret } from '@fortawesome/free-solid-svg-icons'
 
-import { Fragment, useState } from 'react'
+import { Fragment, useState,useEffect } from 'react'
 
 export default function Home(props) {
   const [openGameModesModal, setGameModesModal] = useState(false);
   const handleCloseGameModesModal = () => setGameModesModal(false);
   const handleOpenGameModesModal = () => setGameModesModal(true);
+
+  const [openSetUsernameModal, setSetUsernameModal] = useState(false);
+  const handleCloseSetUsernameModal = () => setSetUsernameModal(false);
+  const handleOpenSetUsernameModal = () => setSetUsernameModal(true);
 
   const [openSignIn, setOpenSignIn] = useState(false);
   const handleCloseSignIn = () => setOpenSignIn(false);
@@ -24,6 +30,13 @@ export default function Home(props) {
   const [openSignUp, setOpenSignUp] = useState(false);
   const handleCloseSignUp = () => setOpenSignUp(false);
   const handleOpenSignUp = () => setOpenSignUp(true);
+
+  useEffect(() => {
+    if (!props.has_username) {
+      handleOpenSetUsernameModal()
+      console.log(props.has_username)
+    }
+  }, [props.has_username]);
 
   const buttons = () => {
     if (props.authed) {
@@ -41,9 +54,7 @@ export default function Home(props) {
       )
     }
   }
-  if(!props.has_username){
-
-  }
+ 
   return (
     <div>
       <NavBar authed={props.authed} />
@@ -56,11 +67,13 @@ export default function Home(props) {
         <EmailSignIn open={openSignIn} handleClose={handleCloseSignIn} handleOpenSignUp={handleOpenSignUp} />
         <EmailSignUp open={openSignUp} handleClose={handleCloseSignUp} />
         <GameModesModal open={openGameModesModal} handleClose={handleCloseGameModesModal} />
+        <SetUsernameModal open={openSetUsernameModal} handleClose={handleCloseSetUsernameModal} />
       </Container>
     </div>
   )
 }
 export async function getServerSideProps(context) {
+  console.log(context.req.session)
   return {
     props: {
       authed: Boolean(context.req.session?.authed && context.req.session?.user_id),

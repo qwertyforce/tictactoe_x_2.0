@@ -24,7 +24,7 @@ import github_oauth_redirect from './routes/github_oauth_redirect';
 import github_oauth_callback from './routes/github_oauth_callback';
 import google_oauth_callback from './routes/google_oauth_callback';
 import signup from './routes/signup';
-import signup from './routes/set_username';
+import set_username from './routes/set_username';
 import login from './routes/login';
 import change_password from './routes/change_password';
 import forgot_password from './routes/forgot_password';

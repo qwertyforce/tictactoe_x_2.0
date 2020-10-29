@@ -6,30 +6,36 @@ import { useRouter } from 'next/router'
 import axios from 'axios';
 import config from '../config/config'
 
-export default function EmailSignIn(props) {
+export default function SetUsernameModal(props) {
     const router = useRouter()
-    const [validated, setValidated] = useState(false);
+    const [isInvalid, setIsInvalid] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
     const [isLoading, setLoading] = useState(false);
     const handleSubmit = (event) => {
         event.preventDefault();
         event.stopPropagation();
         setLoading(true);
-        setValidated(true);
-        const form = event.currentTarget;
-        console.log(form)
-        if (form.checkValidity() === false) {
-            setLoading(false);
-            return
-        }
         const formData = new FormData(event.target)
         const formDataObj = Object.fromEntries(formData.entries())
+        const username=formDataObj.username.toString().trim()
+        const regex = /^[A-Za-z0-9]+$/
+        if(username.length<1 || username.length>16){
+            setIsInvalid(true)
+            setErrorMessage("length must be greater than 1 and less than 17")
+            return
+        }
+        if(!regex.test(username)){
+            setIsInvalid(true)
+            setErrorMessage("Only English alphanumeric characters are allowed")
+            return
+        }
         /*global grecaptcha*/ // defined in pages/_document.tsx
         grecaptcha.ready(function () {
-            grecaptcha.execute(config.recaptcha_site_key, { action: 'login' }).then(function (token) {
-                const login_data = { email: formDataObj.email, password: formDataObj.password, 'g-recaptcha-response': token }
-                axios(`/login`, {
+            grecaptcha.execute(config.recaptcha_site_key, { action: 'set_username' }).then(function (token) {
+                const username_data = { username: formDataObj.username,'g-recaptcha-response': token }
+                axios(`/set_username`, {
                     method: "post",
-                    data: login_data,
+                    data: username_data,
                     withCredentials: true
                 }).then((resp) => {
                     router.push("/");
@@ -47,24 +53,20 @@ export default function EmailSignIn(props) {
             });
         })
     };
-
-    const openSignUp = () => {
-        props.handleClose()
-        props.handleOpenSignUp()
-    }
     return (
-        <Modal show={props.open} size="sm" onHide={props.handleClose}>
+        <Modal show={props.open} size="sm" onHide={props.handleClose} backdrop="static">
             <Modal.Header>
                 <Modal.Title>Username</Modal.Title>
             </Modal.Header>
-            <Form noValidate validated={validated} onSubmit={handleSubmit}>
+            <Form noValidate onSubmit={handleSubmit}>
                 <Modal.Body>
-                    <Form.Group controlId="formBasicEmail">
+                    <Form.Group controlId="formUsername">
                         <Form.Label>Your username</Form.Label>
-                        <Form.Control required type="text" placeholder="Enter email" name="email" />
+                        <Form.Control isInvalid={isInvalid} required type="text" placeholder="Enter your username" name="username" />
+                        <Form.Control.Feedback type="invalid">{errorMessage}</Form.Control.Feedback>
                     </Form.Group>
                     <Modal.Footer style={{ padding: "0px", border: "0px" }}>
-                        <Button disabled={isLoading} variant="primary" type="submit" block>{isLoading ? 'Logging in...' : 'Login'}</Button>
+                        <Button disabled={isLoading} variant="primary" type="submit" block>{isLoading ? 'Setting username ...' : 'Set username'}</Button>
                     </Modal.Footer>
                 </Modal.Body>
             </Form>
