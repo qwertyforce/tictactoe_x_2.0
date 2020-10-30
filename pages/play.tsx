@@ -4,7 +4,7 @@ import Row from 'react-bootstrap/Row'
 import dynamic from 'next/dynamic'
 
 import GameInfo from '../components/GameInfo'
-import GameOffline from '../components/GameOffline'
+import Game from '../components/Game'
 import NavBar from '../components/NavBar'
 import { useState,useRef,forwardRef,useMemo} from 'react'
 
@@ -32,7 +32,7 @@ function generate_players(){
   return players
 }
 
-function PlayOffline(props) {
+function Play(props) {
   const GameInfoRef = useRef(null)
   const players = useMemo(generate_players,[])
   const [gameData, setGameData] = useState({
@@ -52,14 +52,14 @@ function PlayOffline(props) {
       <Container fluid>
         <Row>
           <GameInfo gameData={gameData} />
-          <GameOffline gameData={gameData} setGameData={setGameData} />
+          <Game gameData={gameData} setGameData={setGameData} />
         </Row>
       </Container>
     </div>
   )
 }
 
-export default dynamic(() => Promise.resolve(PlayOffline), {
+export default dynamic(() => Promise.resolve(Play), {
   ssr: false
 })
 // export async function getServerSideProps(context) {
