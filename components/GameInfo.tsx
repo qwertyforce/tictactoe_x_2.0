@@ -9,7 +9,8 @@ import GameDataContext from './GameDataContext'
 import { useState } from 'react'
 
 export default function GameInfo(props) {
-    let GameData=props.gameData
+    const GameData=props.gameData
+    const setGameData=props.setGameData
     // console.log(GameData)
     const usernames = GameData.players.map((player,idx) => {
         return(<p key={"_"+player.username} className={`${styles[player.color]} ${styles.username}`}>
@@ -32,7 +33,16 @@ export default function GameInfo(props) {
     const [selectedItem, setSelectedItem] = useState("");
     // console.log(props)
     const alertClicked = (e) => {
-        setSelectedItem((selectedItem === e.target.id ? "" : e.target.id))
+        const selected_bonus=(selectedItem === e.target.id ? "" : e.target.id)
+        if(GameData.bonuses[selected_bonus]===0){
+            return
+        }
+        setGameData((prevState) => ({
+            ...prevState,
+            selected_bonus: selected_bonus,
+          }));
+        setSelectedItem(selected_bonus)
+
     }
     return (
         <Col md={2} style={{ padding: 0 }} ref={GameData.GameInfoRef}>
@@ -48,15 +58,15 @@ export default function GameInfo(props) {
             <Card>
                 <Card.Header>Your Figure: {YourFigure()}</Card.Header>
             </Card>
-            {GameData.offline?(null):(
+            {GameData.mode==="classic"?(null):(
             <Card>
                 <Card.Header>Your Bonuses</Card.Header>
                 <ListGroup >
-                    <ListGroup.Item action id="set_block" variant={(selectedItem === "set_block") ? ("success") : ""} onClick={alertClicked}>set_block {`(x${props.set_block || 1})`}</ListGroup.Item>
-                    <ListGroup.Item action id="destroy_block" variant={(selectedItem === "destroy_block") ? ("success") : ""} onClick={alertClicked}>destroy_block {`(x${props.destroy_block || 1})`}</ListGroup.Item>
-                    <ListGroup.Item action id="destroy_player_figure" variant={(selectedItem === "destroy_player_figure") ? ("success") : ""} onClick={alertClicked}>destroy_player_figure {`(x${props.destroy_player_figure || 1})`}</ListGroup.Item>
-                    <ListGroup.Item action id="enemy_figure_transform" variant={(selectedItem === "enemy_figure_transform") ? ("success") : ""} onClick={alertClicked} >enemy_figure_transform {`(x${props.enemy_figure_transform || 1})`}</ListGroup.Item>
-                    <ListGroup.Item action id="mine" variant={(selectedItem === "mine") ? ("success") : ""} onClick={alertClicked}>mine {`(x${props.mine || 1})`}</ListGroup.Item>
+                    <ListGroup.Item action id="set_block" variant={(selectedItem === "set_block") ? ("success") : ""} onClick={alertClicked}>set_block {`(x${GameData.bonuses.set_block})`}</ListGroup.Item>
+                    <ListGroup.Item action id="destroy_block" variant={(selectedItem === "destroy_block") ? ("success") : ""} onClick={alertClicked}>destroy_block {`(x${GameData.bonuses.destroy_block})`}</ListGroup.Item>
+                    <ListGroup.Item action id="destroy_player_figure" variant={(selectedItem === "destroy_player_figure") ? ("success") : ""} onClick={alertClicked}>destroy_player_figure {`(x${GameData.bonuses.destroy_player_figure})`}</ListGroup.Item>
+                    <ListGroup.Item action id="enemy_figure_transform" variant={(selectedItem === "enemy_figure_transform") ? ("success") : ""} onClick={alertClicked} >enemy_figure_transform {`(x${GameData.bonuses.enemy_figure_transform })`}</ListGroup.Item>
+                    <ListGroup.Item action id="mine" variant={(selectedItem === "mine") ? ("success") : ""} onClick={alertClicked}>mine {`(x${GameData.bonuses.mine})`}</ListGroup.Item>
                 </ListGroup >
             </Card>)
             }

@@ -372,10 +372,10 @@ function game(canvas,setMargin,setGameData,game_over){
     function draw_winning_line(xs, ys, player_idx) {
         const set_figure = figureOfplayer(player_idx);
         for (let i = 0; i < (xs.length); i += 1) {
-            clear_cell(xs[i], ys[i]);
-            set_figure(xs[i], ys[i]);
+            clear_cell(ys[i], xs[i]);
+            set_figure(ys[i], xs[i]);
             ctx.fillStyle = "rgba(255,20,147,0.5)"
-            drawBox(xs[i], ys[i]);
+            drawBox(ys[i],xs[i]);
         }
     }
 

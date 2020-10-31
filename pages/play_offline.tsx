@@ -42,7 +42,7 @@ function PlayOffline(props) {
     max_player_count: 2,
     current_player_idx: randomInteger(0, players.length - 1),
     time: 0,
-    offline: true,
+    mode: "classic",
     GameInfoRef: GameInfoRef
   });
 

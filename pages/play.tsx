@@ -6,7 +6,9 @@ import dynamic from 'next/dynamic'
 import GameInfo from '../components/GameInfo'
 import Game from '../components/Game'
 import NavBar from '../components/NavBar'
-import { useState,useRef,forwardRef,useMemo} from 'react'
+import { useState,useRef,useMemo} from 'react'
+import io from 'socket.io-client';
+import { useRouter } from 'next/router'
 
 function randomInteger(min, max) {
   var rand = min + Math.random() * (max + 1 - min);
@@ -33,6 +35,13 @@ function generate_players(){
 }
 
 function Play(props) {
+  const router=useRouter();
+  const wss_server_url="ws://localhost:8443"
+  const options={transports: ["websocket"]}
+  if(window.sessionStorage.guest_username){
+    options.query=`guest_name=${window.sessionStorage.guest_username}`
+  }
+  const socket = io.connect(wss_server_url,options)
   const GameInfoRef = useRef(null)
   const players = useMemo(generate_players,[])
   const [gameData, setGameData] = useState({
@@ -42,7 +51,15 @@ function Play(props) {
     max_player_count: 2,
     current_player_idx: randomInteger(0, players.length - 1),
     time: 0,
-    offline: true,
+    bonuses:{
+      "set_block":0,
+      "destroy_block":0,
+      "destroy_player_figure":0,
+      "enemy_figure_transform":0,
+      "mine":0,
+    },
+    selected_bonus:"",
+    mode: "",
     GameInfoRef: GameInfoRef
   });
 
@@ -51,7 +68,7 @@ function Play(props) {
       <NavBar />
       <Container fluid>
         <Row>
-          <GameInfo gameData={gameData} />
+          <GameInfo gameData={gameData} setGameData={setGameData}/>
           <Game gameData={gameData} setGameData={setGameData} />
         </Row>
       </Container>
