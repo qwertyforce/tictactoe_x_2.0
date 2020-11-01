@@ -7,8 +7,7 @@ import GameInfo from '../components/GameInfo'
 import Game from '../components/Game'
 import NavBar from '../components/NavBar'
 import { useState,useRef,useMemo} from 'react'
-import io from 'socket.io-client';
-import { useRouter } from 'next/router'
+
 
 function randomInteger(min, max) {
   var rand = min + Math.random() * (max + 1 - min);
@@ -35,13 +34,6 @@ function generate_players(){
 }
 
 function Play(props) {
-  const router=useRouter();
-  const wss_server_url="ws://localhost:8443"
-  const options={transports: ["websocket"]}
-  if(window.sessionStorage.guest_username){
-    options.query=`guest_name=${window.sessionStorage.guest_username}`
-  }
-  const socket = io.connect(wss_server_url,options)
   const GameInfoRef = useRef(null)
   const players = useMemo(generate_players,[])
   const [gameData, setGameData] = useState({

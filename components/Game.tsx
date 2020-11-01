@@ -7,6 +7,8 @@ import { faUserAlt } from '@fortawesome/free-solid-svg-icons'
 import styles from "../styles/GameInfo.module.css"
 import { useEffect, useState,useRef } from 'react'
 import GameOverModal from './GameOverModal'
+import io from 'socket.io-client';
+import { useRouter } from 'next/router'
 
 function divide(numerator, denominator) {
     const remainder = numerator % denominator;
@@ -390,6 +392,7 @@ function game(canvas,setMargin,setGameData,game_over){
 }
 
 export default function Game(props) {
+    const router=useRouter();
     const [openGameOverModal, setOpenGameOverModal] = useState(false);
     const [gameResult, setGameResult] = useState(false);
     const handleCloseGameOverModal = () => setOpenGameOverModal(false);
@@ -402,7 +405,14 @@ export default function Game(props) {
     const canvasRef = useRef(null)
     const [margin, setMargin] = useState("0px");
     useEffect(() => {
-        game(canvasRef.current,setMargin,setGameData,game_over)
+        console.log(router.query)
+        const wss_server_url="ws://localhost:8443"
+        const options={transports: ["websocket"]}
+        if(window.sessionStorage.guest_username){
+          options.query=`guest_name=${window.sessionStorage.guest_username}`
+        }
+        const socket = io.connect(wss_server_url,options)
+        // game(canvasRef.current,setMargin,setGameData,game_over)
       },[]);
     return (
         <Col  md={9} style={{ padding: 0 }}>
