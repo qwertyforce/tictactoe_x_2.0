@@ -405,13 +405,14 @@ export default function Game(props) {
     const canvasRef = useRef(null)
     const [margin, setMargin] = useState("0px");
     useEffect(() => {
-        console.log(router.query)
+        const query=router.query
         const wss_server_url="ws://localhost:8443"
         const options={transports: ["websocket"]}
         if(window.sessionStorage.guest_username){
           options.query=`guest_name=${window.sessionStorage.guest_username}`
         }
         const socket = io.connect(wss_server_url,options)
+        socket.emit("start_game",query)
         // game(canvasRef.current,setMargin,setGameData,game_over)
       },[]);
     return (
