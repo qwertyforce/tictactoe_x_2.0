@@ -3,6 +3,7 @@ import cookie_parse from 'cookie-parser';
 import session from 'express-session';
 import connectMongo from 'connect-mongo';
 import config from '../config/config'
+import { AnyCnameRecord } from "dns";
 const MongoStore = connectMongo(session);
 const ses_midleware=session({
     secret: config.session_secret,
@@ -20,7 +21,28 @@ const ses_midleware=session({
   })
 const socketio=sktio.listen(8443)
 const cookieParser = cookie_parse(config.session_secret);
-// const username_by_socket_id=new Map()
+const username_by_socket_id=new Map()
+
+const  Maps:Array<any> = []
+Maps.push(new Array(21).fill(null).map(() => new Array(21).fill(0)))
+
+function randomInteger(min:number, max:number) {
+  return Math.floor(min + Math.random() * (max + 1 - min));
+}
+
+function create_lobby(socket:any, Room:string, Opened:any) {
+  const map= JSON.parse(JSON.stringify(Maps[randomInteger(0, Maps.length - 1)]));
+  Opened[Room] = {
+      number_of_players: 1,
+      players: [socket.id],
+      board: map,
+      last_move_time: 0
+  };
+  socket.join(Room);
+  socket.room = Room
+  socket.emit('players_waiting', 1);
+}
+
 socketio.use(function (socket: any, next) { //CHANGE ERROR CODES
   cookieParser((socket.handshake as any), ({} as any), function (err: any) {
     if (err) {
@@ -66,7 +88,7 @@ socketio.on('connection', function(socket:any) {
 socket.on("start_game",function(query:any){
   if(query?.gm===1||query?.gm===2){
     if(query?.duel===1){
-      
+
     }
   }
   console.log(query)
