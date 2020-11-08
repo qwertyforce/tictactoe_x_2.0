@@ -402,6 +402,7 @@ export default function Game(props) {
     }
     gameData=props.gameData
     const setGameData=props.setGameData
+    //window.sessionStorage.guest_username
     const canvasRef = useRef(null)
     const [margin, setMargin] = useState("0px");
     useEffect(() => {

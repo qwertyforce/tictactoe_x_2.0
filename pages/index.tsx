@@ -6,6 +6,7 @@ import EmailSignIn from '../components/EmailSignIn'
 import EmailSignUp from '../components/EmailSignUp'
 import GameModesModal from '../components/GameModesModal'
 import SetUsernameModal from '../components/SetUsernameModal'
+import SetGuestUsernameModal from '../components/SetGuestUsernameModal'
 
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -22,6 +23,10 @@ export default function Home(props) {
   const [openSetUsernameModal, setSetUsernameModal] = useState(false);
   const handleCloseSetUsernameModal = () => setSetUsernameModal(false);
   const handleOpenSetUsernameModal = () => setSetUsernameModal(true);
+  
+  const [openSetGuestUsernameModal, setSetGuestUsernameModal] = useState(false);
+  const handleCloseSetGuestUsernameModal = () => setSetGuestUsernameModal(false);
+  const handleOpenSetGuestUsernameModal = () => setSetGuestUsernameModal(true);
 
   const [openSignIn, setOpenSignIn] = useState(false);
   const handleCloseSignIn = () => setOpenSignIn(false);
@@ -30,6 +35,8 @@ export default function Home(props) {
   const [openSignUp, setOpenSignUp] = useState(false);
   const handleCloseSignUp = () => setOpenSignUp(false);
   const handleOpenSignUp = () => setOpenSignUp(true);
+
+
 
   useEffect(() => {
     if (!props.has_username) {
@@ -49,7 +56,7 @@ export default function Home(props) {
           <Button href="/auth/google" variant="danger" className="mr-3" ><FontAwesomeIcon icon={faGoogle} /> Google</Button>
           <Button href="/auth/github" variant="primary" className="mr-3"><FontAwesomeIcon icon={faGithub} /> Github</Button>
           <Button variant="secondary" className="mr-3" onClick={handleOpenSignIn}><FontAwesomeIcon icon={faEnvelopeOpen} /> E-mail</Button>
-          <Button variant="info"><FontAwesomeIcon icon={faUserSecret} /> Guest play</Button>
+          <Button variant="info"  onClick={handleOpenSetGuestUsernameModal}><FontAwesomeIcon icon={faUserSecret} /> Guest play</Button>
         </Fragment>
       )
     }
@@ -68,6 +75,7 @@ export default function Home(props) {
         <EmailSignUp open={openSignUp} handleClose={handleCloseSignUp} />
         <GameModesModal open={openGameModesModal} handleClose={handleCloseGameModesModal} />
         <SetUsernameModal open={openSetUsernameModal} handleClose={handleCloseSetUsernameModal} />
+        <SetGuestUsernameModal open={openSetGuestUsernameModal} handleClose={handleCloseSetGuestUsernameModal} openGameModesModal={handleOpenGameModesModal}/>
       </Container>
     </div>
   )

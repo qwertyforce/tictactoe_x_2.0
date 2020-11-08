@@ -5,6 +5,7 @@ import connectMongo from 'connect-mongo';
 import config from '../config/config'
 import db_ops from "./helpers/db_ops";
 import moment from "moment";
+import { constants } from "http2";
 const MongoStore = connectMongo(session);
 const ses_midleware=session({
     secret: config.session_secret,
@@ -22,7 +23,7 @@ const ses_midleware=session({
   })
 const socketio=sktio.listen(8443)
 const cookieParser = cookie_parse(config.session_secret);
-// const username_by_socket_id=new Map()
+const username_by_socket_id=new Map()
 const socket_id_by_username=new Map()
 
 const  Maps:Array<any> = []
@@ -63,107 +64,130 @@ function randomInteger(min:number, max:number) {
 }
 
 function join_lobby(socket:any, Room:string, Opened:any) {
-  Opened[Room].players += 1;
+  Opened.get(Room).players += 1;
   socket.join(Room);
-  socketio.in(Room).emit('players_waiting', Opened[Room].players);
-  Opened[Room].names.push(socket.id);
+  socketio.in(Room).emit('players_waiting', Opened.get(Room).players);
+  Opened.get(Room).names.push(socket.id);
   socket.room = Room;
 }
 
-function matchmaking(socket, lobbysize) {
+function matchmaking(socket: any, lobby_size: number) {
   const Playing = socket.array_play
   const Opened = socket.array_open
-  if (Object.keys(Opened).length > 0) {
-      if (Opened[Object.keys(Opened)[0]].players < lobbysize - 1) {
-          const Room = Object.keys(Opened)[0];
-          join_lobby(socket, Room, Opened)
-      } else if (Opened[Object.keys(Opened)[0]].players === lobbysize - 1) {
-          const Room = Object.keys(Opened)[0];
-          run_lobby(socket, Room, Opened, Playing, lobbysize)
-      }
+  if (Opened.size > 0) {
+    const Room = Opened.keys().next().value
+    if (Opened.get(Room).players < lobby_size - 1) {
+      join_lobby(socket, Room, Opened)
+    } else if (Opened.get(Room).players === lobby_size - 1) {
+      run_lobby(socket, Room, Opened, Playing, lobby_size)
+    }
   } else {
     GAME_ID += 1;
-      create_lobby(socket, GAME_ID, Opened);
+    create_lobby(socket, GAME_ID.toString(), Opened);
   }
 }
 
-function run_lobby(socket, Room, Opened, Playing, lobbysize) {
-  Opened[Room].players += 1;
-  let usernames = [];
-  Opened[Room].names.push(socket.id);
-  for (let i = 0; i < lobbysize; i++) {
-    usernames[i] = Players_name_by_socket_id[Opened[Room].names[i]];
+function private_matchmaking(socket: any, Room: string, lobbysize: number) {
+  const Playing = socket.array_play
+  const Opened = socket.array_open
+  if (Opened.get(Room) !== undefined) {
+    if (Opened.get(Room).players < lobbysize - 1) {
+      join_lobby(socket, Room, Opened)
+    } else if (Opened.get(Room).players === lobbysize - 1) {
+      run_lobby(socket, Room, Opened, Playing, lobbysize)
+    }
+  } else {
+    create_lobby(socket, Room, Opened);
   }
-  Opened[Room].Turn = Opened[Room].names[Math.floor((Math.random() * lobbysize))];
+}
+
+function run_lobby(socket: any, Room: string, Opened: any, Playing: any, lobby_size: number) {
+  Opened.get(Room).players += 1;
+  let usernames = [];
+  Opened.get(Room).players.push(socket.id);
+  for (let i = 0; i < lobby_size; i++) {
+    usernames[i] = username_by_socket_id.get(Opened.get(Room).players[i]);
+  }
+  Opened.get(Room).Turn = Opened.get(Room).players[Math.floor((Math.random() * lobby_size))];
   socket.join(Room);
-  socketio.in(Room).emit('players_waiting', lobbysize);
-  socketio.in(Room).emit('player_Names', Names);
-  socketio.in(Room).emit("get_Players", Opened[Room].names);
-  socketio.in(Room).emit("FirstTurn", Opened[Room].Turn);
-  Playing[Room] = Object.assign({}, Opened[Room]);
-  delete Opened[Room];
+  socketio.in(Room).emit('players_waiting', lobby_size);
+  socketio.in(Room).emit('player_Names', usernames);
+  socketio.in(Room).emit("get_Players", Opened.get(Room).names);
+  socketio.in(Room).emit("FirstTurn", Opened.get(Room).Turn);
+  Playing.set(Room, Opened.get(Room))
+  Opened.delete(Room);
   socket.room = Room
-  socketio.in(Room).emit("Map_Load", Playing[Room].board);
+  socketio.in(Room).emit("Map_Load", Playing.get(Room).board);
   Playing[Room].last_move_time = moment().format();
 }
 
-
-function create_lobby(socket:any, Room:string, Opened:any) {
-  const map= JSON.parse(JSON.stringify(Maps[randomInteger(0, Maps.length - 1)]));
-  Opened.set(Room,{
-      number_of_players: 1,
-      players: [socket.id],
-      board: map,
-      last_move_time: 0
+function create_lobby(socket: any, Room: string, Opened: any) {
+  const map = JSON.parse(JSON.stringify(Maps[randomInteger(0, Maps.length - 1)]));
+  Opened.set(Room, {
+    number_of_players: 1,
+    players: [socket.id],
+    board: map,
+    last_move_time: 0
   })
   socket.join(Room);
   socket.room = Room
   socket.emit('players_waiting', 1);
 }
-
-socketio.use(async function (socket: any, next) { 
+function Move_transition(socket:any) {
+  const Playing = socket.array_play
+  Playing.get(socket.room).last_move_time = moment().format();
+  const player_idx = Playing.get(socket.room).players.indexOf(Playing.get(socket.room).Turn);
+  if (player_idx + 1 === Playing.get(socket.room).players.length) {
+    Playing.get(socket.room).Turn = Playing.get(socket.room).players[0]
+  } else {
+    Playing.get(socket.room).Turn = Playing.get(socket.room).players[player_idx + 1];
+  }
+}
+socketio.use(async function (socket: any, next) {
   console.log(socket.handshake.query)
-  if(socket.handshake.query.guest_name && typeof socket.handshake.query.guest_name === "string"){
-    const username=socket.handshake.query.guest_name
-    if(socket_id_by_username.get(username)===undefined){ // no players with this username online
-      const users=await db_ops.activated_user.find_user_by_username(socket.handshake.query.guest_name) 
-      if(users.length===0){//no players with this username are registered
+  if (socket.handshake.query.guest_name && typeof socket.handshake.query.guest_name === "string") {
+    const username = socket.handshake.query.guest_name
+    if (socket_id_by_username.get(username) === undefined) { // no players with this username online
+      const users = await db_ops.activated_user.find_user_by_username(socket.handshake.query.guest_name)
+      if (users.length === 0) {//no players with this username are registered
         socket.username = socket.handshake.query.guest_name
-        socket.guest=1
+        socket.guest = 1
         return next()
-      } 
+      }
     }
     const err = new Error("Username is already taken");
     return next(err);
-  }else{
+  } else {
     cookieParser((socket.handshake as any), ({} as any), function (err: any) {
       if (err) {
         err = new Error("Can't parse cookie");
         return next(err);
       }
-      if ((socket.handshake as any).signedCookies.session){
+      if ((socket.handshake as any).signedCookies.session) {
         ses_midleware((socket.handshake as any), ({} as any), function (err: any) {
           if (err) {
             err = new Error("ses_midleware_error");
             return next(err);
           }
-          if((socket.handshake as any).session.username===undefined){
+          if ((socket.handshake as any).session.username === undefined) {
             err = new Error("not authed");
             return next(err);
           }
-          const username=(socket.handshake as any).session.username
-          if(socket_id_by_username.get(username)===undefined){
+          const username = (socket.handshake as any).session.username
+          if (socket_id_by_username.get(username) === undefined) {
             socket.username = (socket.handshake as any).session.username
-            socket_id_by_username.set(username,socket.id)
+            socket_id_by_username.set(username, socket.id)
+            username_by_socket_id.set(socket.id,username)
             return next()
           }
-          
+
         })
       }
     });
   }
-
 });
+
+
 
 socketio.on('connection', function(socket:any) {
   socket.afk = 0;
@@ -184,109 +208,331 @@ socketio.on('connection', function(socket:any) {
     }
 });
   socket.on("find_game", function (query: any) {
-    if (query.pass) { //private game'
-      let lobby_size;
-      if (query?.gm === 1) {
-        socket.classic = 1;
-        if (query.duel) {
-          lobby_size = 2
-          socket.array_play = Playing_now_classic_private_duel
-          socket.array_open = Opened_games_classic_private_duel
-          socket.mode = "p_classic_pvp"
+    if (query.pass && typeof query.pass==="string" ) { //private game'
+      let lobby_size: number;
+      if (query?.gm === 1 || query?.gm === 2) {
+        if (query?.gm === 1) {
+          socket.classic = 1;
+          if (query.duel) {
+            lobby_size = 2
+            socket.array_play = Playing_now_classic_private_duel
+            socket.array_open = Opened_games_classic_private_duel
+            socket.mode = "p_classic_pvp"
+          } else {
+            lobby_size = 4
+            socket.array_play = Playing_now_classic_private
+            socket.array_open = Opened_games_classic_private
+            socket.mode = "p_classic"
+          }
         } else {
-          lobby_size = 4
-          socket.array_play = Playing_now_classic_private
-          socket.array_open = Opened_games_classic_private
-          socket.mode = "p_classic"
+          socket.used_cells_for_bonus = {}
+          socket.available_bonuses = {}
+          socket.number_of_bonuses_to_use_in_this_turn = 2
+          const random_bonus = bonuses[randomInteger(0, bonuses.length - 1)]
+          socket.available_bonuses[random_bonus] = 1;
+          if (query.duel) {
+            lobby_size = 2
+            socket.array_play = Playing_now_private_duel
+            socket.array_open = Opened_games_private_duel
+            socket.mode = "p_modern_pvp"
+          } else {
+            lobby_size = 4
+            socket.array_play = Playing_now_private
+            socket.array_open = Opened_games_private
+            socket.mode = "p_modern"
+          }
         }
-      } else if (query?.gm === 2) {
-        socket.used_cells_for_bonus = {}
-        socket.available_bonuses = {}
-        socket.number_of_bonuses_to_use_in_this_turn = 2
-        const random_bonus = bonuses[randomInteger(0, bonuses.length - 1)]
-        socket.bonus[random_bonus] = 1;
-        if (query.duel) {
-          lobby_size = 2
-          socket.array_play = Playing_now_private_duel
-          socket.array_open = Opened_games_private_duel
-          socket.mode = "p_modern_pvp"
-        } else {
-          lobby_size = 4
-          socket.array_play = Playing_now_private
-          socket.array_open = Opened_games_private
-          socket.mode = "p_modern"
-        }
+        private_matchmaking(socket,query.pass, lobby_size)
       }
-
     } else {
-      let lobby_size;
-      if (query?.gm === 1) {
-        socket.classic = 1;
-        if (query.duel) {
-          lobby_size = 2
-          socket.array_play = Playing_now_classic_duel
-          socket.array_open = Opened_games_classic_duel
-          socket.mode = "m_classic_pvp"
+      let lobby_size: number;
+      if (query?.gm === 1 || query?.gm === 2) {
+        if (query?.gm === 1) {
+          socket.classic = 1;
+          if (query.duel) {
+            lobby_size = 2
+            socket.array_play = Playing_now_classic_duel
+            socket.array_open = Opened_games_classic_duel
+            socket.mode = "m_classic_pvp"
+          } else {
+            lobby_size = 4
+            socket.array_play = Playing_now_classic
+            socket.array_open = Opened_games_classic
+            socket.mode = "m_classic"
+          }
         } else {
-          lobby_size = 4
-          socket.array_play = Playing_now_classic
-          socket.array_open = Opened_games_classic
-          socket.mode = "m_classic"
+          socket.used_cells_for_bonus = {}
+          socket.available_bonuses = {}
+          socket.number_of_bonuses_to_use_in_this_turn = 2
+          const random_bonus = bonuses[randomInteger(0, bonuses.length - 1)]
+          socket.available_bonuses[random_bonus] = 1;
+          if (query.duel) {
+            lobby_size = 2
+            socket.array_play = Playing_now_duel
+            socket.array_open = Opened_games_duel
+            socket.mode = "m_modern_pvp"
+          } else {
+            lobby_size = 4
+            socket.array_play = Playing_now
+            socket.array_open = Opened_games
+            socket.mode = "m_modern"
+          }
         }
-      } else if (query?.gm === 2) {
-        socket.used_cells_for_bonus = {}
-        socket.available_bonuses = {}
-        socket.number_of_bonuses_to_use_in_this_turn = 2
-        const random_bonus = bonuses[randomInteger(0, bonuses.length - 1)]
-        socket.bonus[random_bonus] = 1;
-        if (query.duel) {
-          lobby_size = 2
-          socket.array_play = Playing_now_duel
-          socket.array_open = Opened_games_duel
-          socket.mode = "m_modern_pvp"
-        } else {
-          lobby_size = 4
-          socket.array_play = Playing_now
-          socket.array_open = Opened_games
-          socket.mode = "m_modern"
-        }
+        matchmaking(socket, lobby_size)
       }
     }
   })
 
-// socket.on('disconnect', function() {
-//   SocketbyName[socket.username] = undefined;
-//   console.log('Got disconnect!');
-//   if (socket.room === undefined) {
-//       return
-//   }
-//   var Playing = socket.array_play
-//   var Opened = socket.array_open
-//   socketio.in(socket.room).emit('message_received', "Server", socket.username + " disconnected");
-//   if (Playing[socket.room] !== undefined) {
-//       var UsernameofLooser = querystring.stringify({
-//           'usernames': '["' + socket.username + '"]'
-//       });
-//       Send_Post_req(UsernameofLooser, '/hujfhmatch_end');
-//       if (Playing[socket.room].Turn === socket.id) {
-//           Move_transition(socket);
-//           console.log("After_leave ", Playing[socket.room].Turn);
-//       }
-//       Playing[socket.room].names.splice(Playing[socket.room].names.indexOf(socket.id), 1);
-//       Playing[socket.room].players -= 1;
-//       if (Playing[socket.room].players === 0) {
-//           Playing[socket.room] = undefined;
-//           return;
-//       };
-//       socketio.in(socket.room).emit('player_left', socket.id);
-//   };
-//   if ((Opened[socket.room] !== undefined) && (Opened[socket.room].names.indexOf(socket.id) > -1)) {
-//       Opened[socket.room].names.splice(Opened[socket.room].names.indexOf(socket.id), 1);
-//       Opened[socket.room].players -= 1;
-//       socketio.in(socket.room).emit('players_waiting', Opened[socket.room].players);
-//   }
-//   socket.room = undefined;
-// });
+socket.on('disconnect', function() {
+  // SocketbyName[socket.username] = undefined;
+  socket_id_by_username.delete(socket.username)
+  console.log('Got disconnect!');
+  if (socket.room === undefined) {
+      return
+  }
+  const Playing = socket.array_play
+  const Opened = socket.array_open
+  socketio.in(socket.room).emit('message_received', "Server", socket.username + " disconnected");
+  if (Playing.get(socket.room) !== undefined) {
+      if(!socket.guest_name){
+        //db_lost(socket.username)
+      }
+      if (Playing.get(socket.room).Turn === socket.id) {
+          Move_transition(socket);
+          console.log("After_leave ", Playing[socket.room].Turn);
+      }
+      Playing.get(socket.room).players.splice(Playing.get(socket.room).players.indexOf(socket.id), 1);
+      Playing.get(socket.room).number_of_players -= 1;
+      if (Playing[socket.room].number_of_players === 0) {
+          Playing.delete(socket.room)
+          return;
+      };
+      socketio.in(socket.room).emit('player_left', socket.id);
+  };
+  if ((Opened.get(socket.room) !== undefined) && (Opened.get(socket.room).players.indexOf(socket.id) > -1)) {
+      Opened.get(socket.room).players.splice(Opened.get(socket.room).players.indexOf(socket.id), 1);
+      Opened.get(socket.room).number_of_players -= 1;
+      socketio.in(socket.room).emit('players_waiting', Opened.get(socket.room).players);
+  }
+  socket.room = undefined;
+});
 
-  
+  socket.on('Make_Move', function (row:any, column:any) {
+    var Playing = socket.array_play
+    if ((socket.room !== undefined) &&
+      (Playing.get(socket.room) !== undefined) &&
+      (Playing.get(socket.room).Turn === socket.id) &&
+      (Number.isInteger(column) === true) &&
+      (Number.isInteger(row) === true) &&
+      (column >= 0) &&
+      (column <= 20) &&
+      (row >= 0) &&
+      (row <= 20) &&
+      (Playing.get(socket.room).board[row][column] !== undefined) &&
+      ((Playing.get(socket.room).board[row][column] === null) || (Playing.get(socket.room).board[row][column] === "Mine"))) {
+      if (socket.classic != 1) {
+        socket.number_of_bonuses_to_use_in_this_turn = 2;
+      }
+      if (Playing.get(socket.room).board[row][column] === "Mine") {
+        console.log("MINE")
+        socketio.in(socket.room).emit("Fake_on_move", row, column, socket.id);
+        Playing.get(socket.room).board[row][column] = null;
+        Move_transition(socket);
+        socketio.in(socket.room).emit('message_received', "Server", socket.username + " vzorvan na mine");
+        return
+      }
+      Playing.get(socket.room).board[row][column] = socket.id;
+      console.log(socket.id + "Made a move at " + column + " " + row); //numberofturn=индекс ходящего в массиве игрков
+      Move_transition(socket)
+      socketio.in(socket.room).emit("On_move", column, row, socket.id);
+    }
+  });
+  socket.on('MoveTimeUp', function () {
+    const Playing = socket.array_play
+    if ((socket.room !== undefined) &&
+      (Playing.get(socket.room) !== undefined)) {
+      const Turn = Playing[socket.room].Turn
+      if (moment().diff(Playing.get(socket.room).last_move_time, 'milliseconds') >= 45000) {
+        console.log(socketio.sockets.connected[Turn].afk)
+        if (socketio.sockets.connected[Turn].afk === 1) {
+          socketio.sockets.connected[Turn].disconnect(true)
+          return
+        }
+        socketio.sockets.connected[Turn].afk += 1;
+        Move_transition(socket);
+        socketio.in(socket.room).emit("PlayerTimeUp");
+      }
+    }
+  });
+
+  socket.on('use_bonus', function (row:number, column:number, name_of_bonus:string) {
+    const Playing = socket.array_play
+    console.log(Playing.get(socket.room))
+    if ((socket.room !== undefined) &&
+      (Playing.get(socket.room)!== undefined) &&
+      (socket.id === Playing[socket.room].Turn) &&
+      (socket.available_bonuses[name_of_bonus] !== undefined) &&
+      (socket.available_bonuses[name_of_bonus] > 0) &&
+      (socket.number_of_bonuses_to_use_in_this_turn > 0)
+    ) {
+      let succes = false;
+      console.log("bonus used", name_of_bonus);
+      console.log(Playing.get(socket.room).board[row][column]);
+      switch (name_of_bonus) {
+        case "set_block":
+          if (Playing.get(socket.room).board[row][column] === null) {
+            Playing.get(socket.room).board[row][column] = "Obstacle";
+            succes = true;
+          }
+          break;
+
+        case "mine":
+          if (Playing.get(socket.room).board[row][column] === null) {
+            Playing.get(socket.room).board[row][column] = "Mine";
+            succes = true;
+          }
+          break;
+
+        case "destroy_block":
+          if (Playing.get(socket.room).board[row][column] === "Obstacle") {
+            Playing.get(socket.room).board[row][column] = null;
+            succes = true;
+          }
+          break;
+        case "destroy_player_figure":
+          if ((Playing.get(socket.room).board[row][column] !== null) &&
+            (Playing.get(socket.room).board[row][column] !== "Obstacle")
+          ) {
+            Playing.get(socket.room).board[row][column] = null;
+            succes = true;
+          }
+          break;
+        case "enemy_figure_transform":
+          if ((Playing.get(socket.room).board[row][column] !== null) &&
+            (Playing.get(socket.room).board[row][column] !== "Obstacle") &&
+            (Playing.get(socket.room).board[row][column] !== socket.id)
+          ) {
+            Playing.get(socket.room).board[row][column] = socket.id;
+            succes = true;
+          }
+          break;
+      }
+      if (succes) {
+        socket.number_of_bonuses_to_use_in_this_turn -= 1;
+        socket.available_bonuses[name_of_bonus] -= 1;
+        if (name_of_bonus === "mine") {
+          return;
+        }
+        socketio.in(socket.room).emit('bonus_used', name_of_bonus, row, column, socket.id);
+      }
+    }
+  });
+  socket.on('win_detected', function (row:number, column:number) {
+    const Playing = socket.array_play
+    if (socket.room === undefined || Playing.get(socket.room) === undefined) {
+      return
+    }
+    let figures_to_win = 7;
+    if (socket.classic === 1) {
+      figures_to_win = 5
+    }
+    const winner_socket_id=Playing.get(socket.room).board[row][column]
+    const Directions = get_directions(Playing.get(socket.room).board, row, column,figures_to_win)
+    console.log(Directions)
+    for (let i = 0; i < 4; i++) {
+      const res = check_directions(Directions[i], i,figures_to_win)
+      if (res) {
+        const xs = res[0]
+        const ys = res[1]
+        console.log("win DETECTED");
+        handle_win(socket,winner_socket_id,xs,ys)
+        return true
+      }
+    }
+  })
 })
+
+function get_directions(Board:any, x:number, y:number,figures_to_win:number) {
+  const Directions = [[],[],[],[]];
+  const Rows=21
+  const Columns=21
+  let dir0=-1
+  let dir1=-1
+  let dir2=-1
+  let dir3=-1
+  for (let i = -(figures_to_win-1); i < figures_to_win; i++) {
+      if (x + i >= 0 && x + i <= Rows - 1) {
+          if(dir0===-1){dir0=[x+i,y]}
+          Directions[0].push(Board[x + i][y])
+          if (y + i >= 0 && y + i <= Columns - 1) {
+              if(dir2===-1){dir2=[x+i,y+i]}
+              Directions[2].push(Board[x + i][y + i])
+          }
+      }
+      if (y + i >= 0 && y + i <= Columns - 1) {
+          if(dir1===-1){dir1=[x,y+i]}
+          Directions[1].push(Board[x][y + i])
+          if (x - i >= 0 && x - i <= Rows - 1) {
+              if(dir3===-1){dir3=[x-i,y+i]}
+              Directions[3].push(Board[x - i][y + i])
+          }
+      }
+  }
+  Directions[0].push(dir0)
+  Directions[1].push(dir1)
+  Directions[2].push(dir2)
+  Directions[3].push(dir3)
+  return Directions
+}
+function check_directions(arr,i,figures_to_win:number) {
+  const vector=get_vector(i)
+  const reference_point=arr[arr.length-1]
+  const comp_func=(figures_to_win===5)?check5:check7
+  for (let i = 0; i < arr.length - (figures_to_win+1); i++) {
+      if (arr[i] !== 0) {
+          if (comp_func(arr,i)) {
+              const win_xs=[]
+              const win_ys=[]
+              for(let k=i;k<=i+figures_to_win;k++){
+                  win_xs.push(reference_point[0]+k*vector[0])
+                  win_ys.push(reference_point[1]+k*vector[1])
+              }
+              return [win_xs,win_ys]
+          }
+      }
+
+  }
+  return false
+}
+function check5(arr:number[],i:number){
+  return arr[i] === arr[i + 1] && arr[i] === arr[i + 2] && arr[i] === arr[i + 3] && arr[i] === arr[i + 4]
+}
+function check7(arr:number[],i:number){
+  return arr[i] === arr[i + 1] && arr[i] === arr[i + 2] && arr[i] === arr[i + 3] && arr[i] === arr[i + 4]  && arr[i] === arr[i + 5]  && arr[i] === arr[i + 6] 
+}
+function get_vector(i){
+  switch(i){
+      case 0:
+          return [1,0]
+      case 1:
+          return [0,1]
+      case 2:
+          return [1,1]
+      case 3:
+          return [-1,1]
+  }
+}
+function handle_win(socket:any,winner_socket_id:any,xs:any,ys:any){
+  socketio.in(socket.room).emit('win_detected', xs, ys, winner_socket_id);
+  let winner_index = socket.array_play.get(socket.room).players.indexOf(socket.id);
+  let number_of_players = socket.array_play.get(socket.room).number_of_players
+  const Losers=[]
+  for (let i = 0; i < number_of_players; i++) {
+      if (i != winner_index) {
+        Losers.push(username_by_socket_id.get(socket.array_play.get(socket.room).players[i]));
+      }
+  }
+  console.log(Losers)
+  socketio.in(socket.room).emit('message_received', "Server", socket.username + " won the game");
+f  socket.array_play.delete(socket.room)
+}
