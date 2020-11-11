@@ -18,17 +18,18 @@ export default function GameInfo(props) {
         </p>)
     });
     const YourFigure=()=>{
-        switch (GameData.players[GameData.your_player_idx].figure) {
-            case "cross":
-                return <FontAwesomeIcon className={styles.vertical_align_middle} icon={faTimes} />
-            case "circle":
-                return <FontAwesomeIcon className={styles.vertical_align_middle} icon={faCircle} />
-            case "triangle":
-                return <FontAwesomeIcon className={styles.vertical_align_middle} icon={faCaretUp} />
-            case "square":
-                return <FontAwesomeIcon className={styles.vertical_align_middle} icon={faSquare} />
+        if(GameData.players.length>0){
+            switch (GameData.players[GameData.your_player_idx].figure) {
+                case "cross":
+                    return <FontAwesomeIcon className={styles.vertical_align_middle} icon={faTimes} />
+                case "circle":
+                    return <FontAwesomeIcon className={styles.vertical_align_middle} icon={faCircle} />
+                case "triangle":
+                    return <FontAwesomeIcon className={styles.vertical_align_middle} icon={faCaretUp} />
+                case "square":
+                    return <FontAwesomeIcon className={styles.vertical_align_middle} icon={faSquare} />
+            }
         }
-
     }
     const [selectedItem, setSelectedItem] = useState("");
     // console.log(props)
@@ -50,7 +51,7 @@ export default function GameInfo(props) {
                 <Card.Header>{`Time for move: ${GameData.time}s`}</Card.Header>
             </Card>
             <Card>
-                <Card.Header>{`Players (${GameData.current_player_count || 1} of ${GameData.max_player_count || 2})`}</Card.Header>
+                <Card.Header>{`Players (${GameData.current_player_count} of ${GameData.max_player_count})`}</Card.Header>
                 <Card.Body style={{ padding: 0 }}>
                     {usernames}
                 </Card.Body>

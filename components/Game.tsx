@@ -17,22 +17,11 @@ function divide(numerator, denominator) {
 }
 
 let gameData;
-function game(canvas,setMargin,setGameData,game_over){
+function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
     console.log("Game")
-    const Engine = new Worker("mtdf(10)_worker.js");
-    Engine.onmessage = function (e) {
-        console.log(e.data.bestmove);
-        console.log(`Cache Hits: ${e.data.CacheHits}`)
-        console.log(`Cache Cutoffs: ${e.data.CacheCutoffs}`)
-        console.log(`Cache Puts: ${e.data.CachePuts}`)
-        console.log(`function calls ${e.data.fc}`)
-        console.log(`Call to iterative mtdf took ${e.data.time} seconds.`)
-        console.log(`StateCacheHits: ${e.data.StateCacheHits}`)
-        console.log(`StateCachePuts: ${e.data.StateCachePuts}`)
-        console.log(e.data.firstMoves)
-        make_move(e.data.bestmove.i, e.data.bestmove.j,1)
-    }
-    const Game_Board = new Array(21).fill(null).map(() => new Array(21).fill(0))
+    const BLOCK_COLOR = "rgba(155,155,155,0.7)"
+    const Game_Board:any = []
+
     const Time_for_move = parseInt(prompt("Enter the time for ai to think (in seconds)")||"0")*1000
     if (Time_for_move === 0 || isNaN(Time_for_move)) {
         location.reload();
@@ -59,7 +48,7 @@ function game(canvas,setMargin,setGameData,game_over){
     // if (localStorage.getItem('sound') == "true") {
     //     $('.custom-control-input').prop('checked', true);
     // }
-    const FiguresToWin = 5;
+    const FiguresToWin = (game_mode===1)?5:7;
     const Rows = 21;
     const Columns = 21;
     let moves_made=0
@@ -84,6 +73,21 @@ function game(canvas,setMargin,setGameData,game_over){
     let prev_move_row;
     let timer 
     init_grid()
+
+
+    socket.on('Map_Load', function(data:any) {
+        ctx.fillStyle = BLOCK_COLOR;
+        for (let xxx = 0; xxx < Rows; xxx++) {
+            Game_Board[xxx] = [];
+            for (let yyy = 0; yyy < Columns; yyy++) {
+                Game_Board[xxx][yyy] = data[xxx][yyy];
+                if (data[xxx][yyy] === "Obstacle") {
+                    drawBox(xxx, yyy);
+                }
+            }
+        }
+    });
+
     if(gameData.current_player_idx===0){
         setGameData((prevState) => ({
             ...prevState,
@@ -193,33 +197,43 @@ function game(canvas,setMargin,setGameData,game_over){
                 return [-1,1]
         }
     }
-    function check_directions(arr,i) {
+    
+    function check_directions(arr,i,figures_to_win:number) {
         const vector=get_vector(i)
         const reference_point=arr[arr.length-1]
-        for (let i = 0; i < arr.length - (4+1); i++) {
+        const comp_func=(figures_to_win===5)?check5:check7
+        for (let i = 0; i < arr.length - (figures_to_win+1); i++) {
             if (arr[i] !== 0) {
-                if (arr[i] === arr[i + 1] && arr[i] === arr[i + 2] && arr[i] === arr[i + 3] && arr[i] === arr[i + 4]) {
+                if (comp_func(arr,i)) {
                     const win_xs=[]
                     const win_ys=[]
-                    for(let k=i;k<=i+4;k++){
+                    for(let k=i;k<=i+figures_to_win;k++){
                         win_xs.push(reference_point[0]+k*vector[0])
                         win_ys.push(reference_point[1]+k*vector[1])
                     }
                     return [win_xs,win_ys]
                 }
             }
-    
+      
         }
         return false
-    }
+      }
+      function check5(arr:number[],i:number){
+        return arr[i] === arr[i + 1] && arr[i] === arr[i + 2] && arr[i] === arr[i + 3] && arr[i] === arr[i + 4]
+      }
+      function check7(arr:number[],i:number){
+        return arr[i] === arr[i + 1] && arr[i] === arr[i + 2] && arr[i] === arr[i + 3] && arr[i] === arr[i + 4]  && arr[i] === arr[i + 5]  && arr[i] === arr[i + 6] 
+      }
 
-     function get_directions(Board, x, y) {
+     function get_directions(Board:any, x:number, y:number,figures_to_win:number) {
         const Directions = [[],[],[],[]];
+        const Rows=21
+        const Columns=21
         let dir0=-1
         let dir1=-1
         let dir2=-1
         let dir3=-1
-        for (let i = -4; i < 5; i++) {
+        for (let i = -(figures_to_win-1); i < figures_to_win; i++) {
             if (x + i >= 0 && x + i <= Rows - 1) {
                 if(dir0===-1){dir0=[x+i,y]}
                 Directions[0].push(Board[x + i][y])
@@ -245,10 +259,10 @@ function game(canvas,setMargin,setGameData,game_over){
     }
 
      function checkwin(Board, x, y,player_idx) {
-        const Directions = get_directions(Board, x, y)
+        const Directions = get_directions(Board, x, y,FiguresToWin)
         console.log(Directions)
         for (let i = 0; i < 4; i++) {
-            const res=check_directions(Directions[i],i)
+            const res=check_directions(Directions[i],i,FiguresToWin)
             if (res) {
                 const xs=res[0]
                 const ys=res[1]
@@ -407,15 +421,44 @@ export default function Game(props) {
     const [margin, setMargin] = useState("0px");
     useEffect(() => {
         const query=router.query
+        if (Object.entries(query).length===0) {
+            return;
+        }
         const wss_server_url="ws://localhost:8443"
         const options={transports: ["websocket"]}
-        if(true){
-          options.query=`guest_name=a`
+        if(window.sessionStorage.getItem("guest_username")){
+          options.query=`guest_username=${window.sessionStorage.getItem("guest_username")}`
         }
         const socket = io.connect(wss_server_url,options)
+        
+       
+        if(query.gm){ query.gm=parseInt(query.gm)}
+        if(query.duel){ query.duel=parseInt(query.duel)}
+        console.log(query)
+        socket.on('players_waiting', function(current_player_count) {
+            setGameData((prevState) => ({
+                ...prevState,
+                current_player_count: current_player_count,
+              }));
+         });
+         socket.on('get_usernames_colors_figures', function(usernames_colors_figures) {
+            setGameData((prevState) => ({
+                ...prevState,
+                your_player_idx:usernames_colors_figures.findIndex((el)=>el.socket_id===socket.io.engine.id),
+                players: usernames_colors_figures,
+              }));
+         });
+
+         socket.on('get_first_turn_player_idx', function(current_player_idx) {
+            setGameData((prevState) => ({
+                ...prevState,
+                current_player_idx: current_player_idx,
+              }));
+         });
+
         socket.emit("find_game",query)
-        // game(canvasRef.current,setMargin,setGameData,game_over)
-      },[]);
+        // game(socket,canvasRef.current,setMargin,setGameData,game_over,query.gm)
+      },[router]);
     return (
         <Col  md={9} style={{ padding: 0 }}>
             <Row className="justify-content-center" style={{ marginTop: margin, marginBottom: margin}}>
