@@ -29,7 +29,12 @@ export default function SetGuestUsernameModal(props) {
         }
         window.sessionStorage.setItem("guest_username",username)
         props.handleClose()
-        props.openGameModesModal()
+        if(props.openGameModesModal){
+            props.openGameModesModal()
+        }else if(props.try_to_reconnect){
+            props.try_to_reconnect()
+        }
+        
     };
     return (
         <Modal show={props.open} size="sm" onHide={props.handleClose} backdrop="static">

@@ -233,7 +233,10 @@ socketio.on('connection', function(socket:any) {
     }
 });
   socket.on("find_game", function (query: any) {
-    if (query.pass && typeof query.pass==="string" ) { //private game'
+    if(!query){
+      return
+    }
+    if (query?.pass && typeof query?.pass==="string" ) { //private game'
       let lobby_size: number;
       if (query?.gm === 1 || query?.gm === 2) {
         if (query?.gm === 1) {

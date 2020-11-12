@@ -1,0 +1,122 @@
+.chat_overlay {
+    background: rgba(255,255,255,0.1);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    display: none;
+}
+
+
+.chat_box {
+  display: block;
+  background: #efefef;
+  position:relative;
+  max-height:100vh;
+
+}
+
+.chat_box_header {
+  display:flex;justify-content:center;align-items:center;
+  background: #5A5EB9;
+  height:5vh;
+  color:white;
+  text-align:center;
+  font-size:20px;
+
+}
+.chat_box_body {
+  position: relative;  
+  border:1px solid #ccc;  
+  overflow: hidden;
+}
+
+.input_group-btn{
+  background:#F4F7F9;
+}
+.grey_border{
+  border-bottom: 1px solid #ccc;
+}
+.input_group{
+  position: relative;
+  display: flex;
+  width: 100%;
+}
+.chat_input {
+  background: #f4f7f9;
+  width:100%; 
+  position:relative;
+  padding-left:10px;
+  resize:none;
+  outline:none;
+  border:1px solid #ccc;
+  color:#888;
+  height: 5vh;
+  border-top:none;
+  border-right: none;
+   padding-top: 0;  
+}
+.chat_input > form {
+    margin-bottom: 0;
+}
+.chat_submit {
+  outline:none!important;   
+  border-bottom: 1px solid #ccc;
+  position:relative;
+  background: transparent;
+  box-shadow:none;
+  border:none;
+  border-radius:50%;
+  color:#5A5EB9;
+  width:auto;
+  height:auto;  
+}
+.chat_logs {
+  padding:10px; 
+  height:inherit;
+  overflow-y:scroll;
+}
+.username{
+  display: inline;
+}
+
+
+.cm_msg_text {
+  max-width:100%; 
+ word-wrap: break-word;         /* All browsers since IE 5.5+ */
+    overflow-wrap: break-word;     /* Renamed property in CSS3 draft spec */
+    width: 100%;
+    display: inline;
+}
+.chat_msg {
+  clear:both;  
+}
+.chat_msg.self > .cm_msg_text {  
+  margin-right:10px;
+}
+.active{
+    background-color: #B1DFBB !important;
+    color: #155724 !important;
+    border-color: #ABC9B2 !important;
+}
+.list-group-item{
+  border-top-left-radius:0rem !important;
+  border-top-right-radius:0rem !important;
+}
+.list-group-item:last-child {
+     margin-bottom: -1; 
+  }
+  .list-group{
+    display: flex;
+  align-items: center;
+  justify-content: center;
+  }
+  #LeftColumn{
+    padding-left: 0px;
+  }
+  #RightColumn{
+    padding-right: 0px;
+  }
+

@@ -9,13 +9,7 @@ import NavBar from '../components/NavBar'
 import { useState,useRef,useMemo, useEffect} from 'react'
 import { useRouter } from 'next/router'
 
-
-function randomInteger(min, max) {
-  var rand = min + Math.random() * (max + 1 - min);
-  rand = Math.floor(rand);
-  return rand;
-}
-
+ 
 // function generate_players(){
 //   const usernames = ["You", "Computer"]
 //   const players=[]

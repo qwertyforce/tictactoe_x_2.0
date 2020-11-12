@@ -5,10 +5,13 @@ import ListGroup from 'react-bootstrap/ListGroup'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUserAlt } from '@fortawesome/free-solid-svg-icons'
 import styles from "../styles/GameInfo.module.css"
-import { useEffect, useState,useRef } from 'react'
+import chat_styles from "../styles/Chat.module.css"
+import { useEffect, useState,useRef, Fragment } from 'react'
 import GameOverModal from './GameOverModal'
 import io from 'socket.io-client';
 import { useRouter } from 'next/router'
+import Chat from '../components/Chat'
+import SetGuestUsernameModal from "./SetGuestUsernameModal"
 
 function divide(numerator, denominator) {
     const remainder = numerator % denominator;
@@ -405,33 +408,63 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
     }
 }
 
+let socket;
+let wss_server_url
+let options
+let query
+function try_to_reconnect(){
+    console.log(123123)
+    if(window.sessionStorage.getItem("guest_username")){
+        options.query=`guest_username=${window.sessionStorage.getItem("guest_username")}`
+    }
+    socket = io.connect(wss_server_url,options)
+    socket.emit("find_game",query)
+}
 export default function Game(props) {
     const router=useRouter();
     const [openGameOverModal, setOpenGameOverModal] = useState(false);
     const [gameResult, setGameResult] = useState(false);
     const handleCloseGameOverModal = () => setOpenGameOverModal(false);
+
+    const [openSetGuestUsernameModal, setSetGuestUsernameModal] = useState(false);
+    const handleCloseSetGuestUsernameModal = () => setSetGuestUsernameModal(false);
+    const handleOpenSetGuestUsernameModal = () => setSetGuestUsernameModal(true);
+
     const game_over=(result)=>{
         setGameResult(result)
         setOpenGameOverModal(true)
     }
     gameData=props.gameData
     const setGameData=props.setGameData
-    //window.sessionStorage.guest_username
     const canvasRef = useRef(null)
+    const [messages, setMessages] = useState([]);
+    const generate_msg = (msg: string, username: string, color: string) => {
+        const msg_id=messages.length
+        const message = (<div className={chat_styles.chat_msg} key={msg_id}>
+            <div className={chat_styles.username + " " + color}>{`${username}: `}</div>
+            <div className={chat_styles.cm_msg_text}>{msg}</div>
+        </div>)
+        setMessages((prev_messages)=>([...prev_messages,message]))
+        if (document.getElementsByClassName(chat_styles.chat_logs)[0]) {
+            document.getElementsByClassName(chat_styles.chat_logs)[0].scrollTop = document.getElementsByClassName(chat_styles.chat_logs)[0].scrollHeight
+        }
+    }
     const [margin, setMargin] = useState("0px");
+
     useEffect(() => {
-        const query=router.query
+        query=router.query
         if (Object.entries(query).length===0) {
             return;
         }
-        const wss_server_url="ws://localhost:8443"
-        const options={transports: ["websocket"]}
+        generate_msg("123","321","text-danger")
+        generate_msg("123","321","text-danger")
+        wss_server_url="ws://localhost:8443"
+        options={transports: ["websocket"]}
         if(window.sessionStorage.getItem("guest_username")){
           options.query=`guest_username=${window.sessionStorage.getItem("guest_username")}`
         }
-        const socket = io.connect(wss_server_url,options)
-        
-       
+
+        socket = io.connect(wss_server_url,options)
         if(query.gm){ query.gm=parseInt(query.gm)}
         if(query.duel){ query.duel=parseInt(query.duel)}
         console.log(query)
@@ -456,15 +489,56 @@ export default function Game(props) {
               }));
          });
 
+        socket.on('message_received', function (username, msg) {
+            let color;
+            if (username !== "Server") {
+                switch (gameData.players.findIndex((el) => el.username)) {
+                    case 0:
+                        color = "text-success";
+                        break;
+                    case 1:
+                        color = chat_styles.text_blue
+                        break;
+                    case 2:
+                        color = "text-warning";
+                        break;
+                    case 3:
+                        color = "text-primary";
+                        break;
+                    default:
+                        color = "text-primary";
+                        break;
+
+                };
+            }
+            else {
+                color = "text-danger";
+            }
+            generate_msg(msg.trim(), username, color);
+        });
+
+        socket.on('error', function(error) {
+            if(error==="not authed"){
+                if(!(window.sessionStorage.getItem("guest_username"))){
+                    handleOpenSetGuestUsernameModal()
+                }
+            }
+            alert(error);
+        });
+        
         socket.emit("find_game",query)
         // game(socket,canvasRef.current,setMargin,setGameData,game_over,query.gm)
       },[router]);
     return (
-        <Col  md={9} style={{ padding: 0 }}>
+        <Fragment>
+        <Col  md={7} style={{ padding: 0 }}>
             <Row className="justify-content-center" style={{ marginTop: margin, marginBottom: margin}}>
                 <canvas  ref={canvasRef} id="myCanvas"></canvas>
             </Row>
             <GameOverModal result={gameResult} open={openGameOverModal} handleClose={handleCloseGameOverModal}/>
         </Col>
+        <Chat messages={messages}/>
+        <SetGuestUsernameModal open={openSetGuestUsernameModal} handleClose={handleCloseSetGuestUsernameModal} try_to_reconnect={try_to_reconnect}/>
+        </Fragment>
     )
 }
