@@ -24,13 +24,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
     console.log("Game")
     const BLOCK_COLOR = "rgba(155,155,155,0.7)"
     const Game_Board:any = []
-
-    const Time_for_move = parseInt(prompt("Enter the time for ai to think (in seconds)")||"0")*1000
-    if (Time_for_move === 0 || isNaN(Time_for_move)) {
-        location.reload();
-    }
-    const time_for_ai=Time_for_move/1000
-    const time_for_human=Time_for_move/10
+    const time_for_move=45
     const c = canvas;
     let lineWidth =3;
     let g_cellSize:number;
@@ -77,7 +71,6 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
     let timer 
     init_grid()
 
-
     socket.on('Map_Load', function(data:any) {
         ctx.fillStyle = BLOCK_COLOR;
         for (let xxx = 0; xxx < Rows; xxx++) {
@@ -89,22 +82,9 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
                 }
             }
         }
+        timer=setInterval(timer_Func, 1000)
     });
 
-    if(gameData.current_player_idx===0){
-        setGameData((prevState) => ({
-            ...prevState,
-            time: time_for_human,
-        }));
-        timer=setInterval(timer_Func, 1000)
-    }else{
-        setGameData((prevState) => ({
-            ...prevState,
-            time: time_for_ai,
-        }));
-        make_move(10,10,1);
-    }
-    
     c.addEventListener('click', function(ev) {
         if (gameData.current_player_idx === gameData.your_player_idx && !Paused) {
             const of = c.getBoundingClientRect();
@@ -113,9 +93,10 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
             const xx = divide(xz, g_cellSize);
             const yy = divide(yz, g_cellSize);
                 if (Game_Board[yy][xx] === 0) {
-                   make_move(yy,xx,gameData.your_player_idx)
-                   console.log(yy, yy);
-                }
+                //    make_move(yy,xx,gameData.your_player_idx)
+                   socket.emit('Make_Move', yy, xx);
+                   console.log(yy, xx);
+            }
         }  
     }, false);
    
@@ -147,35 +128,48 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
             }));
         }
         else {
-            if (gameData.current_player_idx === gameData.your_player_idx) {
-                Move_transition();
-                Engine.postMessage([Game_Board, 1, Time_for_move]);
-            }
+            socket.emit('MoveTimeUp');
+            clearInterval(timer);
         }
     }
 
+    socket.on('PlayerTimeUp', function() {
+        Move_transition();
+    });
+
+
+    socket.on('player_left', function (player_idx) {
+        if (gameData.current_player_idx === player_idx) {
+            Move_transition();
+        }
+        setGameData((prevState) => {
+            const players = prevState.players
+            players[player_idx].disconnected=true
+            return {
+                ...prevState,
+                players: players,
+                max_player_count: prevState.max_player_count - 1
+            }
+        });
+    });
+
+
     function Move_transition() {
         clearInterval(timer);
-        if(gameData.current_player_idx===gameData.your_player_idx){
             setGameData((prevState) => ({
                 ...prevState,
-                time: time_for_ai,
+                time: time_for_move,
               }));
-        }else{
-            setGameData((prevState) => ({
-                ...prevState,
-                time: time_for_human,
-              }));
-        } 
+        
          setGameData((prevState) => {
             if (prevState.current_player_idx === prevState.players.length - 1) {
                 prevState.current_player_idx = 0;
-                 while (prevState.players[prevState.current_player_idx] === null) {
+                 while (prevState.players[prevState.current_player_idx].disconnected) {
                     prevState.current_player_idx += 1;
                  }
              } else {
                 prevState.current_player_idx += 1;
-                 while (prevState.players[prevState.current_player_idx] === null) {
+                 while (prevState.players[prevState.current_player_idx].disconnected) {
                      if (prevState.current_player_idx === prevState.players.length - 1) {
                         prevState.current_player_idx = 0;
                          continue;
@@ -210,7 +204,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
                 if (comp_func(arr,i)) {
                     const win_xs=[]
                     const win_ys=[]
-                    for(let k=i;k<=i+figures_to_win;k++){
+                    for(let k=i;k<=i+(figures_to_win-1);k++){
                         win_xs.push(reference_point[0]+k*vector[0])
                         win_ys.push(reference_point[1]+k*vector[1])
                     }
@@ -269,31 +263,41 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
             if (res) {
                 const xs=res[0]
                 const ys=res[1]
-                draw_winning_line(xs,ys,player_idx);
+                console.log(xs,ys)
+                // draw_winning_line(xs,ys,player_idx);
                 return true
             }
         }
     }
+  
 
+    socket.on('On_move', function(row,column , player_idx) {
+        make_move(row,column,player_idx)
+    })
+
+    socket.on('win_detected', function(win_rows, win_columns, winner_index) {
+        Paused = true;
+        clearInterval(timer);
+        draw_winning_line(win_rows,win_columns,winner_index)
+        game_over((winner_index===gameData.your_player_idx)?"won":"lost")
+    })
     
-    function make_move(column, row, player_idx) {
+    function make_move(row, column, player_idx) {
         if ((prev_move_column !== null) && (prev_move_column !== undefined)) {
             ctx.fillStyle = colorOfplayer(prev_player_idx);
-            drawBox(prev_move_row, prev_move_column);
+            drawBox(prev_move_column, prev_move_row);
         }
         moves_made++
         prev_move_column = column;
         prev_move_row = row;
         prev_player_idx = player_idx;
         console.log(Game_Board)
-        Game_Board[column][row] = (player_idx === 0) ? -1 : 1;
+        Game_Board[row][column] = (player_idx === 0) ? -1 : 1;
         const set_figure = figureOfplayer(player_idx);
-        set_figure(row,column);
-        console.log(prev_move_column,prev_move_row)
-        if (checkwin(Game_Board,prev_move_column,prev_move_row,player_idx)) {
-            Paused = true;
-            game_over((player_idx===gameData.your_player_idx)?"won":"lost")
-            clearInterval(timer);
+        set_figure(column,row);
+        console.log(prev_move_row,prev_move_column)
+        if (gameData.current_player_idx===gameData.your_player_idx && checkwin(Game_Board,prev_move_row,prev_move_column,player_idx)) {
+            socket.emit("win_detected",prev_move_row,prev_move_column)
         } else {
             if (moves_made === 21 * 21) {
                 Paused = true;
@@ -301,9 +305,6 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
                 game_over("draw")
             } else {
                 Move_transition();
-                if (prev_player_idx === gameData.your_player_idx) {
-                    Engine.postMessage([Game_Board, 1, Time_for_move]); //time in ms
-                }
             }
         }
     }
@@ -325,20 +326,20 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         const figure=gameData.players[player_idx].figure
         switch (figure) {
             case "circle":
-                return (x, y) => {
-                    drawCircle(x, y);
+                return (column, row) => {
+                    drawCircle(column, row);
                 };
             case "triangle":
-                return (x, y) => {
-                    drawTriangle(x, y);
+                return (column, row) => {
+                    drawTriangle(column, row);
                 };
             case "square":
-                return (x, y) => {
-                    drawSquare(x, y);
+                return (column, row) => {
+                    drawSquare(column, row);
                 };
             case "cross":
-                return (x, y) => {
-                    drawCross(x, y);
+                return (column, row) => {
+                    drawCross(column, row);
                 };
         };
     }
@@ -388,13 +389,13 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         ctx.fillRect(x * g_cellSize + offset + lineWidth/2, y * g_cellSize + offset + lineWidth/2, g_cellSize - lineWidth, g_cellSize - lineWidth);
     };
     
-    function draw_winning_line(xs, ys, player_idx) {
+    function draw_winning_line(win_rows, win_columns, player_idx) {
         const set_figure = figureOfplayer(player_idx);
-        for (let i = 0; i < (xs.length); i += 1) {
-            clear_cell(ys[i], xs[i]);
-            set_figure(ys[i], xs[i]);
+        for (let i = 0; i < (win_rows.length); i++) {
+            clear_cell(win_columns[i],win_rows[i]);
+            set_figure(win_columns[i], win_rows[i]);
             ctx.fillStyle = "rgba(255,20,147,0.5)"
-            drawBox(ys[i],xs[i]);
+            drawBox(win_columns[i],win_rows[i]);
         }
     }
 
@@ -412,8 +413,10 @@ let socket;
 let wss_server_url
 let options
 let query
+function send_message(msg){
+    socket.emit('send_message',msg)
+}
 function try_to_reconnect(){
-    console.log(123123)
     if(window.sessionStorage.getItem("guest_username")){
         options.query=`guest_username=${window.sessionStorage.getItem("guest_username")}`
     }
@@ -439,12 +442,14 @@ export default function Game(props) {
     const canvasRef = useRef(null)
     const [messages, setMessages] = useState([]);
     const generate_msg = (msg: string, username: string, color: string) => {
-        const msg_id=messages.length
-        const message = (<div className={chat_styles.chat_msg} key={msg_id}>
-            <div className={chat_styles.username + " " + color}>{`${username}: `}</div>
-            <div className={chat_styles.cm_msg_text}>{msg}</div>
-        </div>)
-        setMessages((prev_messages)=>([...prev_messages,message]))
+        setMessages((prev_messages) => {
+            const msg_id = prev_messages.length
+            const message = (<div className={chat_styles.chat_msg} key={msg_id}>
+                <div className={chat_styles.username + " " + color}>{`${username}: `}</div>
+                <div className={chat_styles.cm_msg_text}>{msg}</div>
+            </div>)
+            return [...prev_messages, message]
+        })
         if (document.getElementsByClassName(chat_styles.chat_logs)[0]) {
             document.getElementsByClassName(chat_styles.chat_logs)[0].scrollTop = document.getElementsByClassName(chat_styles.chat_logs)[0].scrollHeight
         }
@@ -456,8 +461,6 @@ export default function Game(props) {
         if (Object.entries(query).length===0) {
             return;
         }
-        generate_msg("123","321","text-danger")
-        generate_msg("123","321","text-danger")
         wss_server_url="ws://localhost:8443"
         options={transports: ["websocket"]}
         if(window.sessionStorage.getItem("guest_username")){
@@ -508,7 +511,6 @@ export default function Game(props) {
                     default:
                         color = "text-primary";
                         break;
-
                 };
             }
             else {
@@ -525,9 +527,13 @@ export default function Game(props) {
             }
             alert(error);
         });
-        
+
+        socket.on('disconnect', function(error) {
+            generate_msg("You was disconnected due to afk","Server","text-danger");
+         });
+
         socket.emit("find_game",query)
-        // game(socket,canvasRef.current,setMargin,setGameData,game_over,query.gm)
+        game(socket,canvasRef.current,setMargin,setGameData,game_over,query.gm)
       },[router]);
     return (
         <Fragment>
@@ -537,8 +543,8 @@ export default function Game(props) {
             </Row>
             <GameOverModal result={gameResult} open={openGameOverModal} handleClose={handleCloseGameOverModal}/>
         </Col>
-        <Chat messages={messages}/>
-        <SetGuestUsernameModal open={openSetGuestUsernameModal} handleClose={handleCloseSetGuestUsernameModal} try_to_reconnect={try_to_reconnect}/>
+        <Chat messages={messages} send_message={send_message}/>
+        <SetGuestUsernameModal open={openSetGuestUsernameModal} handleClose={handleCloseSetGuestUsernameModal} try_to_reconnect={try_to_reconnect} />
         </Fragment>
     )
 }

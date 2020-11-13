@@ -11,6 +11,14 @@ import { useRouter } from 'next/router'
 import styles from "../styles/Chat.module.css"
 
 export default function Chat(props) {
+    const [text,setText] = useState("");
+    const handleChange=(e)=>{
+        setText(e.target.value)
+    }
+    const send_msg=()=>{
+        props.send_message(text.trim())
+        setText("")
+    }
     return (
         <Col md={3} style={{ padding: 0 }}>
             <div className={styles.chat_box}>
@@ -24,8 +32,8 @@ export default function Chat(props) {
                     </div>
                 </div>
                 <div className={styles.input_group}>
-                    <textarea className={styles.chat_input} placeholder="Send a message..." rows={2}></textarea>
-                    <button className={styles.chat_submit}>send</button>
+                    <textarea className={styles.chat_input} onChange={handleChange}  value={text} placeholder="Send a message..." rows={2}></textarea>
+                    <button className={styles.chat_submit} onClick={send_msg}>send</button>
                 </div>
             </div>
         </Col>

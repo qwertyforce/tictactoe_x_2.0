@@ -38,7 +38,7 @@ function Play(props) {
     current_player_count: 1,
     max_player_count: 0,
     current_player_idx: 0,
-    time: 0,
+    time: 45,
     bonuses:{
       "set_block":0,
       "destroy_block":0,

@@ -13,6 +13,9 @@ export default function GameInfo(props) {
     const setGameData=props.setGameData
     // console.log(GameData)
     const usernames = GameData.players.map((player,idx) => {
+        if(player.disconnected){
+            player.username+="(Disconnected)"
+        }
         return(<p key={"_"+player.username} className={`${styles[player.color]} ${styles.username}`}>
             <FontAwesomeIcon icon={faUserAlt} /> {player.username + ((GameData.current_player_idx===idx)?"<---":"")}
         </p>)

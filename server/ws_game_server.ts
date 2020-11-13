@@ -5,7 +5,6 @@ import connectMongo from 'connect-mongo';
 import config from '../config/config'
 import db_ops from "./helpers/db_ops";
 import moment from "moment";
-import { constants } from "http2";
 const MongoStore = connectMongo(session);
 const ses_midleware=session({
     secret: config.session_secret,
@@ -25,6 +24,7 @@ const socketio=sktio.listen(8443)
 const cookieParser = cookie_parse(config.session_secret);
 const username_by_socket_id=new Map()
 const socket_id_by_username=new Map()
+socket_id_by_username.set("Server",1)
 
 const  Maps:Array<any> = []
 Maps.push(new Array(21).fill(null).map(() => new Array(21).fill(0)))
@@ -225,11 +225,9 @@ socketio.on('connection', function(socket:any) {
   console.log(socket.handshake.address);
  
  
-  socket.on('send_message', function(payload:any) {
-    const msg=payload.msg
-    const room=payload.room_name
-    if(socket.rooms.includes(room)){
-      socketio.in(room).emit('message_received', socket.username, msg);
+  socket.on('send_message', function(message:any) {
+    if(socket.room){
+      socketio.in(socket.room).emit('message_received', socket.username, message);
     }
 });
   socket.on("find_game", function (query: any) {
@@ -335,7 +333,8 @@ socket.on('disconnect', function() {
           Playing.delete(socket.room)
           return;
       };
-      socketio.in(socket.room).emit('player_left', socket.id);
+      const player_idx = Playing.get(socket.room).players.indexOf(socket.id);
+      socketio.in(socket.room).emit('player_left', player_idx);
   };
   if ((Opened.get(socket.room) !== undefined) && (Opened.get(socket.room).players.indexOf(socket.id) > -1)) {
       Opened.get(socket.room).players.splice(Opened.get(socket.room).players.indexOf(socket.id), 1);
@@ -346,7 +345,7 @@ socket.on('disconnect', function() {
 });
 
   socket.on('Make_Move', function (row:any, column:any) {
-    var Playing = socket.array_play
+    const Playing = socket.array_play
     if ((socket.room !== undefined) &&
       (Playing.get(socket.room) !== undefined) &&
       (Playing.get(socket.room).Turn === socket.id) &&
@@ -356,23 +355,23 @@ socket.on('disconnect', function() {
       (column <= 20) &&
       (row >= 0) &&
       (row <= 20) &&
-      (Playing.get(socket.room).board[row][column] !== undefined) &&
-      ((Playing.get(socket.room).board[row][column] === null) || (Playing.get(socket.room).board[row][column] === "Mine"))) {
+      ((Playing.get(socket.room).board[row][column] === 0) || (Playing.get(socket.room).board[row][column] === "Mine"))) {
       if (socket.classic != 1) {
         socket.number_of_bonuses_to_use_in_this_turn = 2;
       }
       if (Playing.get(socket.room).board[row][column] === "Mine") {
         console.log("MINE")
         socketio.in(socket.room).emit("Fake_on_move", row, column, socket.id);
-        Playing.get(socket.room).board[row][column] = null;
+        Playing.get(socket.room).board[row][column] = 0;
         Move_transition(socket);
         socketio.in(socket.room).emit('message_received', "Server", socket.username + " vzorvan na mine");
         return
       }
       Playing.get(socket.room).board[row][column] = socket.id;
-      console.log(socket.id + "Made a move at " + column + " " + row); //numberofturn=индекс ходящего в массиве игрков
+      console.log(socket.id + "Made a move at " + row + " " + column); //numberofturn=индекс ходящего в массиве игрков
       Move_transition(socket)
-      socketio.in(socket.room).emit("On_move", column, row, socket.id);
+      const player_idx = socket.array_play.get(socket.room).players.indexOf(socket.id);
+      socketio.in(socket.room).emit("On_move", row, column, player_idx);
     }
   });
   socket.on('MoveTimeUp', function () {
@@ -466,14 +465,16 @@ socket.on('disconnect', function() {
     }
     const winner_socket_id=Playing.get(socket.room).board[row][column]
     const Directions = get_directions(Playing.get(socket.room).board, row, column,figures_to_win)
-    console.log(Directions)
+    // console.log(Directions)
     for (let i = 0; i < 4; i++) {
       const res = check_directions(Directions[i], i,figures_to_win)
       if (res) {
-        const xs = res[0]
-        const ys = res[1]
+        const win_rows = res[0]
+        const win_columns = res[1]
+        // console.log(win_rows)
+        // console.log(win_columns)
         console.log("win DETECTED");
-        handle_win(socket,winner_socket_id,xs,ys)
+        handle_win(socket,win_rows,win_columns,winner_socket_id)
         return true
       }
     }
@@ -519,13 +520,13 @@ function check_directions(arr,i,figures_to_win:number) {
   for (let i = 0; i < arr.length - (figures_to_win+1); i++) {
       if (arr[i] !== 0) {
           if (comp_func(arr,i)) {
-              const win_xs=[]
-              const win_ys=[]
-              for(let k=i;k<=i+figures_to_win;k++){
-                  win_xs.push(reference_point[0]+k*vector[0])
-                  win_ys.push(reference_point[1]+k*vector[1])
+              const win_rows=[]
+              const win_columns=[]
+              for(let k=i;k<=i+(figures_to_win-1);k++){
+                win_rows.push(reference_point[0]+k*vector[0])
+                win_columns.push(reference_point[1]+k*vector[1])
               }
-              return [win_xs,win_ys]
+              return [win_rows,win_columns]
           }
       }
 
@@ -550,10 +551,10 @@ function get_vector(i){
           return [-1,1]
   }
 }
-function handle_win(socket:any,winner_socket_id:any,xs:any,ys:any){
-  socketio.in(socket.room).emit('win_detected', xs, ys, winner_socket_id);
-  let winner_index = socket.array_play.get(socket.room).players.indexOf(socket.id);
-  let number_of_players = socket.array_play.get(socket.room).number_of_players
+function handle_win(socket:any,win_rows:any,win_columns:any,winner_socket_id:any){
+  const winner_index = socket.array_play.get(socket.room).players.indexOf(winner_socket_id);
+  socketio.in(socket.room).emit('win_detected', win_rows, win_columns,winner_index);
+  const number_of_players = socket.array_play.get(socket.room).number_of_players
   const Losers=[]
   for (let i = 0; i < number_of_players; i++) {
       if (i != winner_index) {
