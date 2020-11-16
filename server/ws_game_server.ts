@@ -65,42 +65,41 @@ function randomInteger(min:number, max:number) {
 
 function join_lobby(socket:any, Room:string, Opened:any) {
   console.log("JOIN LOBBY")
-  Opened.get(Room).number_of_players += 1;
-  socket.join(Room);
-  socketio.in(Room).emit('players_waiting', Opened.get(Room).number_of_players);
   Opened.get(Room).players.push(socket.id);
+  socket.join(Room);
+  socketio.in(Room).emit('players_waiting', Opened.get(Room).players.length);
   socket.room = Room;
   console.log(Opened)
 }
 
-function matchmaking(socket: any, lobby_size: number) {
+function matchmaking(socket: any, lobby_size: number,game_mode:string) {
   const Playing = socket.array_play
   const Opened = socket.array_open
 
   if (Opened.size > 0) {
     const Room = Opened.keys().next().value
-    if (Opened.get(Room).number_of_players < lobby_size - 1) {
+    if (Opened.get(Room).players.length < lobby_size - 1) {
       join_lobby(socket, Room, Opened)
-    } else if (Opened.get(Room).number_of_players === lobby_size - 1) {
+    } else if (Opened.get(Room).players.length === lobby_size - 1) {
       run_lobby(socket, Room, Opened, Playing, lobby_size)
     }
   } else {
     GAME_ID += 1;
-    create_lobby(socket, GAME_ID.toString(), Opened);
+    create_lobby(socket, GAME_ID.toString(), Opened,game_mode);
   }
 }
 
-function private_matchmaking(socket: any, Room: string, lobbysize: number) {
+function private_matchmaking(socket: any, Room: string, lobbysize: number, game_mode:string) {
   const Playing = socket.array_play
   const Opened = socket.array_open
   if (Opened.get(Room) !== undefined) {
-    if (Opened.get(Room).number_of_players < lobbysize - 1) {
+    if (Opened.get(Room).players.length < lobbysize - 1) {
       join_lobby(socket, Room, Opened)
-    } else if (Opened.get(Room).number_of_players === lobbysize - 1) {
+    } else if (Opened.get(Room).players.length === lobbysize - 1) {
       run_lobby(socket, Room, Opened, Playing, lobbysize)
     }
   } else {
-    create_lobby(socket, Room, Opened);
+    create_lobby(socket, Room, Opened,game_mode);
   }
 }
 
@@ -121,7 +120,6 @@ function generate_players(usernames,socket_ids){
 }
 
 function run_lobby(socket: any, Room: string, Opened: any, Playing: any, lobby_size: number) {
-  Opened.get(Room).number_of_players += 1;
   let usernames = [];
   Opened.get(Room).players.push(socket.id);
   for (let i = 0; i < lobby_size; i++) {
@@ -144,12 +142,12 @@ function run_lobby(socket: any, Room: string, Opened: any, Playing: any, lobby_s
   Playing.get(Room).last_move_time = moment().format();
 }
 
-function create_lobby(socket: any, Room: string, Opened: any) {
+function create_lobby(socket: any, Room: string, Opened: any, game_mode:string) {
   const map = JSON.parse(JSON.stringify(Maps[randomInteger(0, Maps.length - 1)]));
   Opened.set(Room, {
-    number_of_players: 1,
     players: [socket.id],
     board: map,
+    game_mode:game_mode,
     last_move_time: 0
   })
   socket.join(Room);
@@ -225,17 +223,18 @@ socketio.on('connection', function(socket:any) {
   console.log(socket.handshake.address);
  
  
-  socket.on('send_message', function(message:any) {
-    if(socket.room){
+  socket.on('send_message', function (message: any) {
+    if (socket.room) {
       socketio.in(socket.room).emit('message_received', socket.username, message);
     }
-});
+  });
   socket.on("find_game", function (query: any) {
     if(!query){
       return
     }
     if (query?.pass && typeof query?.pass==="string" ) { //private game'
       let lobby_size: number;
+      let game_mode:string;
       if (query?.gm === 1 || query?.gm === 2) {
         if (query?.gm === 1) {
           socket.classic = 1;
@@ -243,35 +242,37 @@ socketio.on('connection', function(socket:any) {
             lobby_size = 2
             socket.array_play = Playing_now_classic_private_duel
             socket.array_open = Opened_games_classic_private_duel
-            socket.mode = "p_classic_pvp"
+            game_mode = "p_classic_duel"
           } else {
             lobby_size = 4
             socket.array_play = Playing_now_classic_private
             socket.array_open = Opened_games_classic_private
-            socket.mode = "p_classic"
+            game_mode = "p_classic"
           }
         } else {
-          socket.used_cells_for_bonus = {}
+          socket.used_cells_for_bonus = []
           socket.available_bonuses = {}
           socket.number_of_bonuses_to_use_in_this_turn = 2
           const random_bonus = bonuses[randomInteger(0, bonuses.length - 1)]
           socket.available_bonuses[random_bonus] = 1;
+          socket.emit("get_bonus",random_bonus)
           if (query.duel) {
             lobby_size = 2
             socket.array_play = Playing_now_private_duel
             socket.array_open = Opened_games_private_duel
-            socket.mode = "p_modern_pvp"
+            game_mode = "p_modern_duel"
           } else {
             lobby_size = 4
             socket.array_play = Playing_now_private
             socket.array_open = Opened_games_private
-            socket.mode = "p_modern"
+            game_mode = "p_modern"
           }
         }
-        private_matchmaking(socket,query.pass, lobby_size)
+        private_matchmaking(socket,query.pass, lobby_size, game_mode)
       }
     } else {
       let lobby_size: number;
+      let game_mode:string;
       if (query?.gm === 1 || query?.gm === 2) {
         if (query?.gm === 1) {
           socket.classic = 1;
@@ -279,32 +280,33 @@ socketio.on('connection', function(socket:any) {
             lobby_size = 2
             socket.array_play = Playing_now_classic_duel
             socket.array_open = Opened_games_classic_duel
-            socket.mode = "m_classic_pvp"
+            game_mode = "m_classic_duel"
           } else {
             lobby_size = 4
             socket.array_play = Playing_now_classic
             socket.array_open = Opened_games_classic
-            socket.mode = "m_classic"
+            game_mode = "m_classic"
           }
         } else {
-          socket.used_cells_for_bonus = {}
+          socket.used_cells_for_bonus = []
           socket.available_bonuses = {}
           socket.number_of_bonuses_to_use_in_this_turn = 2
           const random_bonus = bonuses[randomInteger(0, bonuses.length - 1)]
           socket.available_bonuses[random_bonus] = 1;
+          socket.emit("get_bonus",random_bonus)
           if (query.duel) {
             lobby_size = 2
             socket.array_play = Playing_now_duel
             socket.array_open = Opened_games_duel
-            socket.mode = "m_modern_pvp"
+            game_mode = "m_modern_duel"
           } else {
             lobby_size = 4
             socket.array_play = Playing_now
             socket.array_open = Opened_games
-            socket.mode = "m_modern"
+            game_mode = "m_modern"
           }
         }
-        matchmaking(socket, lobby_size)
+        matchmaking(socket, lobby_size, game_mode)
       }
     }
   })
@@ -321,25 +323,22 @@ socket.on('disconnect', function() {
   socketio.in(socket.room).emit('message_received', "Server", socket.username + " disconnected");
   if (Playing.get(socket.room) !== undefined) {
       if(!socket.guest){
-        //db_lost(socket.username)
+        db_ops.game_ops.set_game_result_by_username(socket.username,Playing.get(socket.room).game_mode,"loss")
       }
       if (Playing.get(socket.room).Turn === socket.id) {
           Move_transition(socket);
           console.log("After_leave ", Playing.get(socket.room).Turn);
       }
       Playing.get(socket.room).players.splice(Playing.get(socket.room).players.indexOf(socket.id), 1);
-      Playing.get(socket.room).number_of_players -= 1;
-      if (Playing.get(socket.room).number_of_players === 0) {
+      if (Playing.get(socket.room).players.length === 0) {
           Playing.delete(socket.room)
           return;
       };
-      const player_idx = Playing.get(socket.room).players.indexOf(socket.id);
-      socketio.in(socket.room).emit('player_left', player_idx);
+      socketio.in(socket.room).emit('player_left', socket.id);
   };
   if ((Opened.get(socket.room) !== undefined) && (Opened.get(socket.room).players.indexOf(socket.id) > -1)) {
       Opened.get(socket.room).players.splice(Opened.get(socket.room).players.indexOf(socket.id), 1);
-      Opened.get(socket.room).number_of_players -= 1;
-      socketio.in(socket.room).emit('players_waiting', Opened.get(socket.room).number_of_players);
+      socketio.in(socket.room).emit('players_waiting', Opened.get(socket.room).players.length);
   }
   socket.room = undefined;
 });
@@ -370,8 +369,7 @@ socket.on('disconnect', function() {
       Playing.get(socket.room).board[row][column] = socket.id;
       console.log(socket.id + "Made a move at " + row + " " + column); //numberofturn=индекс ходящего в массиве игрков
       Move_transition(socket)
-      const player_idx = socket.array_play.get(socket.room).players.indexOf(socket.id);
-      socketio.in(socket.room).emit("On_move", row, column, player_idx);
+      socketio.in(socket.room).emit("On_move", row, column, socket.id);
     }
   });
   socket.on('MoveTimeUp', function () {
@@ -394,10 +392,9 @@ socket.on('disconnect', function() {
 
   socket.on('use_bonus', function (row:number, column:number, name_of_bonus:string) {
     const Playing = socket.array_play
-    console.log(Playing.get(socket.room))
     if ((socket.room !== undefined) &&
       (Playing.get(socket.room)!== undefined) &&
-      (socket.id === Playing.get(socket.room).Turn) &&
+      (Playing.get(socket.room).Turn === socket.id) &&
       (socket.available_bonuses[name_of_bonus] !== undefined) &&
       (socket.available_bonuses[name_of_bonus] > 0) &&
       (socket.number_of_bonuses_to_use_in_this_turn > 0)
@@ -454,32 +451,160 @@ socket.on('disconnect', function() {
       }
     }
   });
-  socket.on('win_detected', function (row:number, column:number) {
+  socket.on("get_bonus", function (row: number, column: number) {
+    const Playing = socket.array_play
+    if ((socket.room !== undefined) &&
+      (Playing.get(socket.room) !== undefined) &&
+      (Number.isInteger(column) === true) &&
+      (Number.isInteger(row) === true) &&
+      (column >= 0) &&
+      (column <= 20) &&
+      (row >= 0) &&
+      (row <= 20) &&
+      (Playing.get(socket.room).board[row][column] === socket.id)) {
+        const Directions = get_directions_bonus(Playing.get(socket.room).board, row, column,socket.used_cells_for_bonus)
+        console.log(Directions)
+        for (let i = 0; i < 4; i++) {
+            const res=check_directions(Directions[i],i,3)
+            if (res) {
+                const rows=res[0]
+                const columns=res[1]
+                for(let i=0;i<rows.length;i++){
+                    socket.used_cells_for_bonus.push({row:rows[i],column:columns[i]})
+                }
+                const random_bonus = bonuses[randomInteger(0, bonuses.length - 1)]
+                if (socket.available_bonuses[random_bonus] == undefined) {
+                    socket.available_bonuses[random_bonus] = 1;
+                } else {
+                    socket.available_bonuses[random_bonus] += 1;
+                }
+                socket.emit("get_bonus", random_bonus);
+                //console.log(Playing[room].UsedForBonus);
+                socketio.in(socket.room).emit('message_received', "Server", socket.username + " got " + random_bonus + " bonus for 3 in a row");
+                console.log("BONUS!!!")
+                socket.emit("get_bonus",row,column)
+                console.log(rows,columns)
+                return true
+            }
+        }
+
+      }
+  })
+  socket.on('win_detected', function (row: number, column: number) {
+    const Playing = socket.array_play
+    if ((socket.room !== undefined) &&
+      (Playing.get(socket.room) !== undefined) &&
+      (Number.isInteger(column) === true) &&
+      (Number.isInteger(row) === true) &&
+      (column >= 0) &&
+      (column <= 20) &&
+      (row >= 0) &&
+      (row <= 20) &&
+      (Playing.get(socket.room).board[row][column] === socket.id)) {
+      let figures_to_win = 7;
+      if (socket.classic === 1) {
+        figures_to_win = 5
+      }
+      const Directions = get_directions(Playing.get(socket.room).board, row, column, figures_to_win)
+      for (let i = 0; i < 4; i++) {
+        const res = check_directions(Directions[i], i, figures_to_win)
+        if (res) {
+          const win_rows = res[0]
+          const win_columns = res[1]
+          // console.log(win_rows)
+          // console.log(win_columns)
+          console.log("win DETECTED");
+          handle_win(socket, win_rows, win_columns, socket.id)
+          return true
+        }
+      }
+    }
+  })
+  socket.on('draw_detected', function () {
     const Playing = socket.array_play
     if (socket.room === undefined || Playing.get(socket.room) === undefined) {
       return
     }
-    let figures_to_win = 7;
-    if (socket.classic === 1) {
-      figures_to_win = 5
-    }
-    const winner_socket_id=Playing.get(socket.room).board[row][column]
-    const Directions = get_directions(Playing.get(socket.room).board, row, column,figures_to_win)
-    // console.log(Directions)
-    for (let i = 0; i < 4; i++) {
-      const res = check_directions(Directions[i], i,figures_to_win)
-      if (res) {
-        const win_rows = res[0]
-        const win_columns = res[1]
-        // console.log(win_rows)
-        // console.log(win_columns)
-        console.log("win DETECTED");
-        handle_win(socket,win_rows,win_columns,winner_socket_id)
-        return true
+    const isDraw=check_draw(Playing.get(socket.room).board)
+    if(isDraw){
+      console.log("DRAW DETECTED")
+      socketio.in(socket.room).emit('draw_detected');
+      for (let i = 0; i < Playing.get(socket.room).players.length; i++) {
+        const username=username_by_socket_id.get(Playing.get(socket.room).players[i])
+        db_ops.game_ops.set_game_result_by_username(username,Playing.get(socket.room).game_mode,"draw")
       }
+      socketio.in(socket.room).emit('message_received', "Server", "Draw");
+      socket.array_play.delete(socket.room)
     }
-  })
+  });
+
 })
+
+
+
+function get_directions_bonus(Board:any, x:number, y:number,used_cells_for_bonus:any) {
+  const Directions:any = [[],[],[],[]];
+  const pieces_in_a_row=3
+  const Rows=21
+  const Columns=21
+  let dir0=-1
+  let dir1=-1
+  let dir2=-1
+  let dir3=-1
+  for (let i = -(pieces_in_a_row-1); i < pieces_in_a_row; i++) {
+      if (x + i >= 0 && x + i <= Rows - 1) {
+          if(dir0===-1){dir0=[x+i,y]}
+          if(used_cells_for_bonus.find((el)=>el.row===(x + i)&&el.column===(y))){
+              Directions[0].push(-1)
+          }else{
+              Directions[0].push(Board[x + i][y])
+          }
+          
+          if (y + i >= 0 && y + i <= Columns - 1) {
+              if(dir2===-1){dir2=[x+i,y+i]}
+              if(used_cells_for_bonus.find((el)=>el.row===(x + i)&&el.column===(y + i))){
+                  Directions[2].push(-1)
+              }else{
+                  Directions[2].push(Board[x + i][y + i])
+              }
+          }
+      }
+      if (y + i >= 0 && y + i <= Columns - 1) {
+          if(dir1===-1){dir1=[x,y+i]}
+          if (used_cells_for_bonus.find((el) => el.row === (x) && el.column === (y + i))) {
+              Directions[1].push(-1)
+          } else {
+              Directions[1].push(Board[x][y + i])
+          }
+          if (x - i >= 0 && x - i <= Rows - 1) {
+              if(dir3===-1){dir3=[x-i,y+i]}
+              if (used_cells_for_bonus.find((el) => el.row === (x-i) && el.column === (y + i))) {
+                  Directions[3].push(-1)
+              } else {
+                  Directions[3].push(Board[x - i][y + i])
+              }
+          }
+      }
+  }
+  Directions[0].push(dir0)
+  Directions[1].push(dir1)
+  Directions[2].push(dir2)
+  Directions[3].push(dir3)
+  return Directions
+}
+
+function check_draw(Game_Board){
+  const Rows=21
+  const Columns=21
+  for(let row=0;row<Rows;row++){
+      for(let column=0;column<Columns;column++){
+          if(Game_Board[row][column]===0){
+              return false
+          }
+      }
+  }
+  return true
+}
 
 function get_directions(Board:any, x:number, y:number,figures_to_win:number) {
   const Directions = [[],[],[],[]];
@@ -516,23 +641,39 @@ function get_directions(Board:any, x:number, y:number,figures_to_win:number) {
 function check_directions(arr,i,figures_to_win:number) {
   const vector=get_vector(i)
   const reference_point=arr[arr.length-1]
-  const comp_func=(figures_to_win===5)?check5:check7
-  for (let i = 0; i < arr.length - (figures_to_win+1); i++) {
+  let comp_func;
+  switch(figures_to_win){
+      case 3:
+          comp_func=check3
+          break;
+      case 5:
+          comp_func=check5
+          break;
+      case 7:
+          comp_func=check7
+          break;
+  }
+  for (let i = 0; i < arr.length - (figures_to_win-1); i++) {
       if (arr[i] !== 0) {
           if (comp_func(arr,i)) {
-              const win_rows=[]
-              const win_columns=[]
+              const win_xs=[]
+              const win_ys=[]
               for(let k=i;k<=i+(figures_to_win-1);k++){
-                win_rows.push(reference_point[0]+k*vector[0])
-                win_columns.push(reference_point[1]+k*vector[1])
+                  win_xs.push(reference_point[0]+k*vector[0])
+                  win_ys.push(reference_point[1]+k*vector[1])
               }
-              return [win_rows,win_columns]
+              return [win_xs,win_ys]
           }
       }
 
   }
   return false
 }
+
+function check3(arr:number[],i:number){
+  return arr[i] === arr[i + 1] && arr[i] === arr[i + 2]
+}
+
 function check5(arr:number[],i:number){
   return arr[i] === arr[i + 1] && arr[i] === arr[i + 2] && arr[i] === arr[i + 3] && arr[i] === arr[i + 4]
 }
@@ -552,16 +693,18 @@ function get_vector(i){
   }
 }
 function handle_win(socket:any,win_rows:any,win_columns:any,winner_socket_id:any){
-  const winner_index = socket.array_play.get(socket.room).players.indexOf(winner_socket_id);
-  socketio.in(socket.room).emit('win_detected', win_rows, win_columns,winner_index);
-  const number_of_players = socket.array_play.get(socket.room).number_of_players
-  const Losers=[]
-  for (let i = 0; i < number_of_players; i++) {
+  const Playing=socket.array_play
+  const winner_index = Playing.get(socket.room).players.indexOf(winner_socket_id);
+  socketio.in(socket.room).emit('win_detected', win_rows, win_columns,winner_socket_id);
+  const winner_username=username_by_socket_id.get(Playing.get(socket.room).players[winner_index])
+  db_ops.game_ops.set_game_result_by_username(winner_username,Playing.get(socket.room).game_mode,"won")
+  for (let i = 0; i < Playing.get(socket.room).players.length; i++) {
       if (i != winner_index) {
-        Losers.push(username_by_socket_id.get(socket.array_play.get(socket.room).players[i]));
+        const username=username_by_socket_id.get(Playing.get(socket.room).players[i])
+        db_ops.game_ops.set_game_result_by_username(username,Playing.get(socket.room).game_mode,"loss")
       }
   }
-  console.log(Losers)
+  
   socketio.in(socket.room).emit('message_received', "Server", socket.username + " won the game");
-  socket.array_play.delete(socket.room)
+  Playing.delete(socket.room)
 }
