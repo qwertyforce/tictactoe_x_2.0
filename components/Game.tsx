@@ -22,6 +22,7 @@ function divide(numerator, denominator) {
 let gameData;
 function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
     console.log("Game")
+    let used_cells_for_bonus: any[]=[]
     const BLOCK_COLOR = "rgba(155,155,155,0.7)"
     const Game_Board:any = []
     const time_for_move=45
@@ -48,7 +49,6 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
     const FiguresToWin = (game_mode===1)?5:7;
     const Rows = 21;
     const Columns = 21;
-    let moves_made=0
     let Paused = false;
     const offset = lineWidth / 2;
     const height = g_cellSize * Rows + (lineWidth);
@@ -65,9 +65,9 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
     ctx.scale(scale, scale);
     ctx.lineWidth = lineWidth;
 
-    let prev_player_idx;
-    let prev_move_column;
-    let prev_move_row;
+    let prev_player_idx:number;
+    let prev_move_column:number;
+    let prev_move_row:number;
     let timer 
     init_grid()
 
@@ -92,13 +92,19 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
             const yz = ev.clientY - of.top;
             const xx = divide(xz, g_cellSize);
             const yy = divide(yz, g_cellSize);
+            if (gameData.selected_bonus !== "") {
+                socket.emit('use_bonus', yy, xx, gameData.selected_bonus);
+            } else {
                 if (Game_Board[yy][xx] === 0) {
-                //    make_move(yy,xx,gameData.your_player_idx)
-                   socket.emit('Make_Move', yy, xx);
-                   console.log(yy, xx);
-            }
+                    //    make_move(yy,xx,gameData.your_player_idx)
+                    socket.emit('Make_Move', yy, xx);
+                    console.log(yy, xx);
+                }
+            }      
         }  
     }, false);
+
+    
    
     function init_grid(){
         ctx.clearRect(0, 0, width, height);
@@ -137,8 +143,50 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         Move_transition();
     });
 
+    socket.on('bonus_used', function(bonus_name, row, column, player_socket_id) {
+        const player_idx=gameData.players.findIndex((el)=>el.socket_id===player_socket_id)
+        switch (bonus_name) {
+            case 'set_block':
+                Game_Board[row][column] = "Obstacle";
+                ctx.fillStyle = BLOCK_COLOR;
+                drawBox(column, row);
+                if (check_draw(Game_Board)) {
+                    socket.emit("draw_detected")
+                }
+                break;
+            case 'destroy_block':
+                Game_Board[row][column] = 0;
+                clear_cell(column, row);
+                break;
+            case 'destroy_player_figure':
+                Game_Board[row][column] = 0;
+                clear_cell(column, row);
+                break;
+            case 'enemy_figure_transform':
+                Game_Board[row][column] = (player_idx+1);
+                clear_cell(column, row);
+                console.log(colorOfplayer(player_idx));
+                ctx.fillStyle = colorOfplayer(player_idx);
+                const figure = figureOfplayer(player_idx);
+                figure(column, row)
+                drawBox(column, row);
+                if(gameData.your_player_idx===player_idx && check_for_bonus(Game_Board,row,column)){
+                    socket.emit("get_bonus",row,column)
+                }
+                if (gameData.your_player_idx===player_idx && check_win(Game_Board,prev_move_row,prev_move_column)) {
+                    socket.emit("win_detected",prev_move_row,prev_move_column)
+                }
+                break;
+        }
+        console.log("bonus used", data);
+        if (gameData.your_player_idx===player_idx) {
+            Selected_Bonus = undefined;
+            store.commit("change_bonus_amount_by",{data:bonus_name,amount:-1})
+        }
+    });
 
-    socket.on('player_left', function (player_idx) {
+    socket.on('player_left', function (socket_id) {
+        const player_idx=gameData.players.findIndex((el)=>el.socket_id===socket_id)
         if (gameData.current_player_idx === player_idx) {
             Move_transition();
         }
@@ -153,9 +201,27 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         });
     });
 
+    function check_for_bonus(Board,row,column){
+        const Directions = get_directions_bonus(Board, row, column)
+        console.log(Directions)
+        for (let i = 0; i < 4; i++) {
+            const res=check_directions(Directions[i],i,3)
+            if (res) {
+                const rows=res[0]
+                const columns=res[1]
+                for(let i=0;i<rows.length;i++){
+                    used_cells_for_bonus.push({row:rows[i],column:columns[i]})
+                }
+                console.log("BONUS!!!")
+                console.log(rows,columns)
+                return true
+            }
+        }
+    }
 
     function Move_transition() {
         clearInterval(timer);
+        console.log("MOVE TRANSITION")
             setGameData((prevState) => ({
                 ...prevState,
                 time: time_for_move,
@@ -198,8 +264,19 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
     function check_directions(arr,i,figures_to_win:number) {
         const vector=get_vector(i)
         const reference_point=arr[arr.length-1]
-        const comp_func=(figures_to_win===5)?check5:check7
-        for (let i = 0; i < arr.length - (figures_to_win+1); i++) {
+        let comp_func;
+        switch(figures_to_win){
+            case 3:
+                comp_func=check3
+                break;
+            case 5:
+                comp_func=check5
+                break;
+            case 7:
+                comp_func=check7
+                break;
+        }
+        for (let i = 0; i < arr.length - (figures_to_win-1); i++) {
             if (arr[i] !== 0) {
                 if (comp_func(arr,i)) {
                     const win_xs=[]
@@ -214,6 +291,9 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
       
         }
         return false
+      }
+      function check3(arr:number[],i:number){
+        return arr[i] === arr[i + 1] && arr[i] === arr[i + 2]
       }
       function check5(arr:number[],i:number){
         return arr[i] === arr[i + 1] && arr[i] === arr[i + 2] && arr[i] === arr[i + 3] && arr[i] === arr[i + 4]
@@ -255,12 +335,66 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         return Directions
     }
 
-     function checkwin(Board, x, y,player_idx) {
+
+    function get_directions_bonus(Board:any, x:number, y:number) {
+        const Directions:any = [[],[],[],[]];
+        const pieces_in_a_row=3
+        const Rows=21
+        const Columns=21
+        let dir0=-1
+        let dir1=-1
+        let dir2=-1
+        let dir3=-1
+        for (let i = -(pieces_in_a_row-1); i < pieces_in_a_row; i++) {
+            if (x + i >= 0 && x + i <= Rows - 1) {
+                if(dir0===-1){dir0=[x+i,y]}
+                if(used_cells_for_bonus.find((el)=>el.row===(x + i)&&el.column===(y))){
+                    Directions[0].push(-1)
+                }else{
+                    Directions[0].push(Board[x + i][y])
+                }
+                
+                if (y + i >= 0 && y + i <= Columns - 1) {
+                    if(dir2===-1){dir2=[x+i,y+i]}
+                    if(used_cells_for_bonus.find((el)=>el.row===(x + i)&&el.column===(y + i))){
+                        Directions[2].push(-1)
+                    }else{
+                        Directions[2].push(Board[x + i][y + i])
+                    }
+                }
+            }
+            if (y + i >= 0 && y + i <= Columns - 1) {
+                if(dir1===-1){dir1=[x,y+i]}
+                if (used_cells_for_bonus.find((el) => el.row === (x) && el.column === (y + i))) {
+                    Directions[1].push(-1)
+                } else {
+                    Directions[1].push(Board[x][y + i])
+                }
+                if (x - i >= 0 && x - i <= Rows - 1) {
+                    if(dir3===-1){dir3=[x-i,y+i]}
+                    if (used_cells_for_bonus.find((el) => el.row === (x-i) && el.column === (y + i))) {
+                        Directions[3].push(-1)
+                    } else {
+                        Directions[3].push(Board[x - i][y + i])
+                    }
+                }
+            }
+        }
+        Directions[0].push(dir0)
+        Directions[1].push(dir1)
+        Directions[2].push(dir2)
+        Directions[3].push(dir3)
+        return Directions
+    }
+
+
+     function check_win(Board, x, y) {
         const Directions = get_directions(Board, x, y,FiguresToWin)
         console.log(Directions)
         for (let i = 0; i < 4; i++) {
             const res=check_directions(Directions[i],i,FiguresToWin)
             if (res) {
+                console.log("1241412412")
                 const xs=res[0]
                 const ys=res[1]
                 console.log(xs,ys)
@@ -271,15 +405,29 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
     }
   
 
-    socket.on('On_move', function(row,column , player_idx) {
+    socket.on('On_move', function(row, column, socket_id) {
+        const player_idx=gameData.players.findIndex((el)=>el.socket_id===socket_id)
+        console.log(player_idx)
         make_move(row,column,player_idx)
     })
 
-    socket.on('win_detected', function(win_rows, win_columns, winner_index) {
+    socket.on('get_bonus', function(bonus:string) {
+        setGameData((prevState) => {
+            const bonuses=prevState.bonuses
+            bonuses[bonus]+=1
+            return {
+                ...prevState,
+                bonuses: bonuses,
+              }
+        });
+    })
+
+    socket.on('win_detected', function(win_rows, win_columns, winner_socket_id) {
+        const player_idx=gameData.players.findIndex((el)=>el.socket_id===winner_socket_id)
         Paused = true;
         clearInterval(timer);
-        draw_winning_line(win_rows,win_columns,winner_index)
-        game_over((winner_index===gameData.your_player_idx)?"won":"lost")
+        draw_winning_line(win_rows,win_columns,player_idx)
+        game_over((player_idx===gameData.your_player_idx)?"won":"lost")
     })
     
     function make_move(row, column, player_idx) {
@@ -287,27 +435,37 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
             ctx.fillStyle = colorOfplayer(prev_player_idx);
             drawBox(prev_move_column, prev_move_row);
         }
-        moves_made++
         prev_move_column = column;
         prev_move_row = row;
         prev_player_idx = player_idx;
         console.log(Game_Board)
-        Game_Board[row][column] = (player_idx === 0) ? -1 : 1;
+        Game_Board[row][column] = (player_idx+1); // 0 is reserved for blank space
         const set_figure = figureOfplayer(player_idx);
         set_figure(column,row);
         console.log(prev_move_row,prev_move_column)
-        if (gameData.current_player_idx===gameData.your_player_idx && checkwin(Game_Board,prev_move_row,prev_move_column,player_idx)) {
+        if(gameData.your_player_idx===player_idx && check_for_bonus(Game_Board,row,column)){
+            socket.emit("get_bonus",row,column)
+        }
+        if (gameData.your_player_idx===player_idx && check_win(Game_Board,prev_move_row,prev_move_column)) {
             socket.emit("win_detected",prev_move_row,prev_move_column)
-        } else {
-            if (moves_made === 21 * 21) {
-                Paused = true;
-                clearInterval(timer);
-                game_over("draw")
-            } else {
-                Move_transition();
-            }
+        } else if(check_draw(Game_Board)) {
+            socket.emit("draw_detected")
+        }else{
+            Move_transition()
         }
     }
+
+    function check_draw(Game_Board){
+        for(let row=0;row<Rows;row++){
+            for(let column=0;column<Columns;column++){
+                if(Game_Board[row][column]===0){
+                    return false
+                }
+            }
+        }
+        return true
+    }
+
     function colorOfplayer(player_idx) {
         const color=gameData.players[player_idx].color
         switch (color) {
@@ -478,6 +636,7 @@ export default function Game(props) {
               }));
          });
          socket.on('get_usernames_colors_figures', function(usernames_colors_figures) {
+            console.log(usernames_colors_figures)
             setGameData((prevState) => ({
                 ...prevState,
                 your_player_idx:usernames_colors_figures.findIndex((el)=>el.socket_id===socket.io.engine.id),
@@ -494,8 +653,9 @@ export default function Game(props) {
 
         socket.on('message_received', function (username, msg) {
             let color;
+             console.log(gameData.players.findIndex((el) => el.username===username))
             if (username !== "Server") {
-                switch (gameData.players.findIndex((el) => el.username)) {
+                switch (gameData.players.findIndex((el) => el.username===username)) {
                     case 0:
                         color = "text-success";
                         break;
