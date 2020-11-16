@@ -1,29 +1,9 @@
-import Head from 'next/head'
-import Container from 'react-bootstrap/Container'
-import Button from 'react-bootstrap/Button'
 import NavBar from '../components/NavBar'
-import EmailSignIn from '../components/EmailSignIn'
-import EmailSignUp from '../components/EmailSignUp'
-import GameModesModal from '../components/GameModesModal'
-import SetUsernameModal from '../components/SetUsernameModal'
-import SetGuestUsernameModal from '../components/SetGuestUsernameModal'
-
-
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faGoogle, faGithub } from '@fortawesome/free-brands-svg-icons'
-import { faPlay, faEnvelopeOpen, faUserSecret } from '@fortawesome/free-solid-svg-icons'
-
-import { Fragment, useState,useEffect } from 'react'
 import Table from 'react-bootstrap/Table'
 import db_ops from 'server/helpers/db_ops'
-import { useRouter } from 'next/router'
+
 
 export default function Profile(props) {
-  const router=useRouter()
-  if(!props.authed || !props.has_username){
-    router.push("/")
-  }
- 
   return (
     <div>
       <NavBar />
@@ -76,7 +56,7 @@ export default function Profile(props) {
           </tr>
         </thead>
         <tbody>
-        <tr>
+          <tr>
             <td>classic</td>
             <td>{props.private_stats.classic.wins}</td>
             <td>{props.private_stats.classic.losses}</td>
@@ -108,24 +88,25 @@ export default function Profile(props) {
 export async function getServerSideProps(context) {
   console.log(context.req.session?.username)
   const authed = Boolean(context.req.session?.authed && context.req.session?.user_id)
-  let private_stats
-  let matchmaking_stats
-  if (authed) {
+  const has_username = Boolean(context.req.session?.username !== "")
+  if (!authed || !has_username) {
+    context.res.redirect("/")
+  } else {
+    let private_stats
+    let matchmaking_stats
     const user = await db_ops.activated_user.find_user_by_id(context.req.session?.user_id)
     if (user.length === 1) {
       private_stats = user[0].private_stats
       matchmaking_stats = user[0].matchmaking_stats
+
+      return {
+        props: {
+          username: context.req.session?.username,
+          private_stats: private_stats,
+          matchmaking_stats: matchmaking_stats
+        }
+      }
+
     }
   }
-
-  return {
-    props: {
-      authed: authed,
-      has_username: Boolean(context.req.session?.username !== ""),
-      username:context.req.session?.username,
-      private_stats: private_stats,
-      matchmaking_stats: matchmaking_stats
-    }
-  }
-
 }
