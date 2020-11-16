@@ -81,7 +81,9 @@
 .username{
   display: inline;
 }
-
+.text_blue{
+  color: rgb(0, 197, 255);
+}
 
 .cm_msg_text {
   max-width:100%; 

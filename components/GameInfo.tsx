@@ -5,7 +5,6 @@ import ListGroup from 'react-bootstrap/ListGroup'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUserAlt,faTimes,faCircle,faCaretUp,faSquare} from '@fortawesome/free-solid-svg-icons'
 import styles from "../styles/GameInfo.module.css"
-import GameDataContext from './GameDataContext'
 import { useState } from 'react'
 
 export default function GameInfo(props) {
@@ -13,11 +12,12 @@ export default function GameInfo(props) {
     const setGameData=props.setGameData
     // console.log(GameData)
     const usernames = GameData.players.map((player,idx) => {
+        let disconnected=""
         if(player.disconnected){
-            player.username+="(Disconnected)"
+            disconnected=" (Disconnected)"
         }
         return(<p key={"_"+player.username} className={`${styles[player.color]} ${styles.username}`}>
-            <FontAwesomeIcon icon={faUserAlt} /> {player.username + ((GameData.current_player_idx===idx)?"<---":"")}
+            <FontAwesomeIcon icon={faUserAlt} /> {player.username + disconnected + ((GameData.current_player_idx===idx)?"<---":"")}
         </p>)
     });
     const YourFigure=()=>{
@@ -36,7 +36,7 @@ export default function GameInfo(props) {
     }
     const [selectedItem, setSelectedItem] = useState("");
     // console.log(props)
-    const alertClicked = (e) => {
+    const SelectBonus = (e) => {
         const selected_bonus=(selectedItem === e.target.id ? "" : e.target.id)
         if(GameData.bonuses[selected_bonus]===0){
             return
@@ -66,11 +66,11 @@ export default function GameInfo(props) {
             <Card>
                 <Card.Header>Your Bonuses</Card.Header>
                 <ListGroup >
-                    <ListGroup.Item action id="set_block" variant={(selectedItem === "set_block") ? ("success") : ""} onClick={alertClicked}>set_block {`(x${GameData.bonuses.set_block})`}</ListGroup.Item>
-                    <ListGroup.Item action id="destroy_block" variant={(selectedItem === "destroy_block") ? ("success") : ""} onClick={alertClicked}>destroy_block {`(x${GameData.bonuses.destroy_block})`}</ListGroup.Item>
-                    <ListGroup.Item action id="destroy_player_figure" variant={(selectedItem === "destroy_player_figure") ? ("success") : ""} onClick={alertClicked}>destroy_player_figure {`(x${GameData.bonuses.destroy_player_figure})`}</ListGroup.Item>
-                    <ListGroup.Item action id="enemy_figure_transform" variant={(selectedItem === "enemy_figure_transform") ? ("success") : ""} onClick={alertClicked} >enemy_figure_transform {`(x${GameData.bonuses.enemy_figure_transform })`}</ListGroup.Item>
-                    <ListGroup.Item action id="mine" variant={(selectedItem === "mine") ? ("success") : ""} onClick={alertClicked}>mine {`(x${GameData.bonuses.mine})`}</ListGroup.Item>
+                    <ListGroup.Item action id="set_block" variant={(selectedItem === "set_block") ? ("success") : ""} onClick={SelectBonus}>set_block {`(x${GameData.bonuses.set_block})`}</ListGroup.Item>
+                    <ListGroup.Item action id="destroy_block" variant={(selectedItem === "destroy_block") ? ("success") : ""} onClick={SelectBonus}>destroy_block {`(x${GameData.bonuses.destroy_block})`}</ListGroup.Item>
+                    <ListGroup.Item action id="destroy_player_figure" variant={(selectedItem === "destroy_player_figure") ? ("success") : ""} onClick={SelectBonus}>destroy_player_figure {`(x${GameData.bonuses.destroy_player_figure})`}</ListGroup.Item>
+                    <ListGroup.Item action id="enemy_figure_transform" variant={(selectedItem === "enemy_figure_transform") ? ("success") : ""} onClick={SelectBonus} >enemy_figure_transform {`(x${GameData.bonuses.enemy_figure_transform })`}</ListGroup.Item>
+                    <ListGroup.Item action id="mine" variant={(selectedItem === "mine") ? ("success") : ""} onClick={SelectBonus}>mine {`(x${GameData.bonuses.mine})`}</ListGroup.Item>
                 </ListGroup >
             </Card>)
             }

@@ -87,6 +87,51 @@ async function generate_id() {
     return id;
 }
 
+////////////////////////////////////////GAME_OPS
+async function set_game_result_by_username(username:string,game_mode:string,result:string):Promise<void> {
+    let query=""
+    switch (game_mode) {
+        case "p_classic_duel":
+            query = "private_stats.classic_duel"
+            break;
+        case "p_classic":
+            query = "private_stats.classic"
+            break;
+        case "p_modern_duel":
+            query = "private_stats.modern_duel"
+            break;
+        case "p_modern":
+            query = "private_stats.modern"
+            break;
+        case "m_classic_duel":
+            query = "matchmaking_stats.classic_duel"
+            break;
+        case "m_classic":
+            query = "matchmaking_stats.classic"
+            break;
+        case "m_modern_duel":
+            query = "matchmaking_stats.modern_duel"
+            break;
+        case "m_modern":
+            query = "matchmaking_stats.modern"
+            break;
+
+    }
+    switch(result){
+        case "won":
+            query+=".wins"
+            break;
+        case "lost":
+            query+=".losses"
+            break;
+        case "draw":
+            query+=".draws"
+            break;   
+    }
+    const collection = client.db(db_main).collection("users");
+    collection.updateOne({username:username}, { $inc: {[query]:1} })
+}
+
 
 ////////////////////////////////////////PASSWORD RECOVERY
 async function update_user_password_by_id(id:string,password:string):Promise<void> {
@@ -247,6 +292,9 @@ async function create_new_user_not_activated(email:string, pass:string, token:st
 /////////////////////////////////////////////////////////
 
 export default {
+    game_ops:{
+        set_game_result_by_username
+    },
     password_recovery:{
         update_user_password_by_id,
         delete_password_recovery_token,

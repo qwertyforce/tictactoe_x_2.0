@@ -11,7 +11,7 @@ const nav_bar=memo((props)=>{
                 </Fragment>
             )
         } else {
-            null
+            return null
         }
     }
     return (
@@ -22,7 +22,6 @@ const nav_bar=memo((props)=>{
                 <Nav className="mr-auto">
                     <Nav.Link href="/play_offline">Play against AI</Nav.Link>
                     <Nav.Link href="/leaderboard">Leaderboard</Nav.Link>
-                    <Nav.Link href="/stats">Server Statistics</Nav.Link>
                    {profile_and_stats()}
                 </Nav>
             </Navbar.Collapse>
