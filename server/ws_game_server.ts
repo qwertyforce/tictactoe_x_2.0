@@ -103,7 +103,7 @@ function private_matchmaking(socket: any, Room: string, lobbysize: number, game_
   }
 }
 
-function generate_players(usernames,socket_ids){
+function generate_players(usernames: string[],socket_ids: string[]){
   const players=[]
   let figures = ["cross", "circle", "square", "triangle"]
   let colors = ["green", "blue", "light_blue", "orange"]
@@ -381,12 +381,12 @@ socket.on('disconnect', function() {
       (Playing.get(socket.room) !== undefined)) {
       const Turn = Playing.get(socket.room).Turn
       if (moment().diff(Playing.get(socket.room).last_move_time, 'milliseconds') >= 45000) {
-        console.log(socketio.sockets.connected[Turn].afk)
-        if (socketio.sockets.connected[Turn].afk === 1) {
+        console.log((socketio.sockets.connected[Turn] as any).afk)
+        if ((socketio.sockets.connected[Turn] as any).afk === 1) {
           socketio.sockets.connected[Turn].disconnect(true)
           return
         }
-        socketio.sockets.connected[Turn].afk += 1;
+        (socketio.sockets.connected[Turn] as any).afk += 1;
         Move_transition(socket);
         socketio.in(socket.room).emit("PlayerTimeUp");
       }
@@ -543,20 +543,31 @@ socket.on('disconnect', function() {
 
 })
 
+function check_draw(Game_Board:number[][]){
+  const Rows=21
+  const Columns=21
+  for(let row=0;row<Rows;row++){
+      for(let column=0;column<Columns;column++){
+          if(Game_Board[row][column]===0){
+              return false
+          }
+      }
+  }
+  return true
+}
 
-
-function get_directions_bonus(Board:any, x:number, y:number,used_cells_for_bonus:any) {
+function get_directions_bonus(Board:number[][], x:number, y:number,used_cells_for_bonus:any[]) {
   const Directions:any = [[],[],[],[]];
   const pieces_in_a_row=3
   const Rows=21
   const Columns=21
-  let dir0=-1
-  let dir1=-1
-  let dir2=-1
-  let dir3=-1
+  let dir0:number[]=[]
+  let dir1:number[]=[]
+  let dir2:number[]=[]
+  let dir3:number[]=[]
   for (let i = -(pieces_in_a_row-1); i < pieces_in_a_row; i++) {
       if (x + i >= 0 && x + i <= Rows - 1) {
-          if(dir0===-1){dir0=[x+i,y]}
+          if(dir0.length===0){dir0.push(x+i,y)}
           if(used_cells_for_bonus.find((el)=>el.row===(x + i)&&el.column===(y))){
               Directions[0].push(-1)
           }else{
@@ -564,7 +575,7 @@ function get_directions_bonus(Board:any, x:number, y:number,used_cells_for_bonus
           }
           
           if (y + i >= 0 && y + i <= Columns - 1) {
-              if(dir2===-1){dir2=[x+i,y+i]}
+              if(dir2.length===0){dir2.push(x+i,y+i)}
               if(used_cells_for_bonus.find((el)=>el.row===(x + i)&&el.column===(y + i))){
                   Directions[2].push(-1)
               }else{
@@ -573,14 +584,14 @@ function get_directions_bonus(Board:any, x:number, y:number,used_cells_for_bonus
           }
       }
       if (y + i >= 0 && y + i <= Columns - 1) {
-          if(dir1===-1){dir1=[x,y+i]}
+        if(dir1.length===0){dir1.push(x,y+i)}
           if (used_cells_for_bonus.find((el) => el.row === (x) && el.column === (y + i))) {
               Directions[1].push(-1)
           } else {
               Directions[1].push(Board[x][y + i])
           }
           if (x - i >= 0 && x - i <= Rows - 1) {
-              if(dir3===-1){dir3=[x-i,y+i]}
+            if(dir3.length===0){dir3.push(x-i,y+i)}
               if (used_cells_for_bonus.find((el) => el.row === (x-i) && el.column === (y + i))) {
                   Directions[3].push(-1)
               } else {
@@ -596,41 +607,28 @@ function get_directions_bonus(Board:any, x:number, y:number,used_cells_for_bonus
   return Directions
 }
 
-function check_draw(Game_Board){
+function get_directions(Board:number[][], x:number, y:number,figures_to_win:number) {
+  const Directions:any[][] = [[],[],[],[]];
   const Rows=21
   const Columns=21
-  for(let row=0;row<Rows;row++){
-      for(let column=0;column<Columns;column++){
-          if(Game_Board[row][column]===0){
-              return false
-          }
-      }
-  }
-  return true
-}
-
-function get_directions(Board:any, x:number, y:number,figures_to_win:number) {
-  const Directions = [[],[],[],[]];
-  const Rows=21
-  const Columns=21
-  let dir0=-1
-  let dir1=-1
-  let dir2=-1
-  let dir3=-1
+  let dir0:number[]=[]
+  let dir1:number[]=[]
+  let dir2:number[]=[]
+  let dir3:number[]=[]
   for (let i = -(figures_to_win-1); i < figures_to_win; i++) {
       if (x + i >= 0 && x + i <= Rows - 1) {
-          if(dir0===-1){dir0=[x+i,y]}
+          if(dir0.length===0){dir0.push(x+i,y)}
           Directions[0].push(Board[x + i][y])
           if (y + i >= 0 && y + i <= Columns - 1) {
-              if(dir2===-1){dir2=[x+i,y+i]}
+            if(dir2.length===0){dir2.push(x+i,y+i)}
               Directions[2].push(Board[x + i][y + i])
           }
       }
       if (y + i >= 0 && y + i <= Columns - 1) {
-          if(dir1===-1){dir1=[x,y+i]}
+        if(dir1.length===0){dir1.push(x,y+i)}
           Directions[1].push(Board[x][y + i])
           if (x - i >= 0 && x - i <= Rows - 1) {
-              if(dir3===-1){dir3=[x-i,y+i]}
+            if(dir3.length===0){dir3.push(x-i,y+i)}
               Directions[3].push(Board[x - i][y + i])
           }
       }
@@ -641,10 +639,11 @@ function get_directions(Board:any, x:number, y:number,figures_to_win:number) {
   Directions[3].push(dir3)
   return Directions
 }
-function check_directions(arr,i,figures_to_win:number) {
+
+function check_directions(arr:any[],i:number,figures_to_win:number) {
   const vector=get_vector(i)
   const reference_point=arr[arr.length-1]
-  let comp_func;
+  let comp_func:any;
   switch(figures_to_win){
       case 3:
           comp_func=check3
@@ -662,13 +661,12 @@ function check_directions(arr,i,figures_to_win:number) {
               const win_xs=[]
               const win_ys=[]
               for(let k=i;k<=i+(figures_to_win-1);k++){
-                  win_xs.push(reference_point[0]+k*vector[0])
-                  win_ys.push(reference_point[1]+k*vector[1])
+                  win_xs.push(reference_point[0]+k*vector![0])
+                  win_ys.push(reference_point[1]+k*vector![1])
               }
               return [win_xs,win_ys]
           }
       }
-
   }
   return false
 }
@@ -683,7 +681,7 @@ function check5(arr:number[],i:number){
 function check7(arr:number[],i:number){
   return arr[i] === arr[i + 1] && arr[i] === arr[i + 2] && arr[i] === arr[i + 3] && arr[i] === arr[i + 4]  && arr[i] === arr[i + 5]  && arr[i] === arr[i + 6] 
 }
-function get_vector(i){
+function get_vector(i:number){
   switch(i){
       case 0:
           return [1,0]
@@ -707,7 +705,6 @@ function handle_win(socket:any,win_rows:any,win_columns:any,winner_socket_id:any
         db_ops.game_ops.set_game_result_by_username(username,Playing.get(socket.room).game_mode,"lost")
       }
   }
-  
   socketio.in(socket.room).emit('message_received', "Server", socket.username + " won the game");
   Playing.delete(socket.room)
 }
