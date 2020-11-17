@@ -229,6 +229,9 @@ socketio.on('connection', function(socket:any) {
     }
   });
   socket.on("find_game", function (query: any) {
+    if(socket.room!==undefined){
+      return
+    }
     if(!query){
       return
     }
@@ -323,7 +326,7 @@ socket.on('disconnect', function() {
   socketio.in(socket.room).emit('message_received', "Server", socket.username + " disconnected");
   if (Playing.get(socket.room) !== undefined) {
       if(!socket.guest){
-        db_ops.game_ops.set_game_result_by_username(socket.username,Playing.get(socket.room).game_mode,"loss")
+        db_ops.game_ops.set_game_result_by_username(socket.username,Playing.get(socket.room).game_mode,"lost")
       }
       if (Playing.get(socket.room).Turn === socket.id) {
           Move_transition(socket);
@@ -404,14 +407,14 @@ socket.on('disconnect', function() {
       console.log(Playing.get(socket.room).board[row][column]);
       switch (name_of_bonus) {
         case "set_block":
-          if (Playing.get(socket.room).board[row][column] === null) {
+          if (Playing.get(socket.room).board[row][column] === 0) {
             Playing.get(socket.room).board[row][column] = "Obstacle";
             succes = true;
           }
           break;
 
         case "mine":
-          if (Playing.get(socket.room).board[row][column] === null) {
+          if (Playing.get(socket.room).board[row][column] === 0) {
             Playing.get(socket.room).board[row][column] = "Mine";
             succes = true;
           }
@@ -419,20 +422,20 @@ socket.on('disconnect', function() {
 
         case "destroy_block":
           if (Playing.get(socket.room).board[row][column] === "Obstacle") {
-            Playing.get(socket.room).board[row][column] = null;
+            Playing.get(socket.room).board[row][column] = 0;
             succes = true;
           }
           break;
         case "destroy_player_figure":
-          if ((Playing.get(socket.room).board[row][column] !== null) &&
+          if ((Playing.get(socket.room).board[row][column] !== 0) &&
             (Playing.get(socket.room).board[row][column] !== "Obstacle")
           ) {
-            Playing.get(socket.room).board[row][column] = null;
+            Playing.get(socket.room).board[row][column] = 0;
             succes = true;
           }
           break;
         case "enemy_figure_transform":
-          if ((Playing.get(socket.room).board[row][column] !== null) &&
+          if ((Playing.get(socket.room).board[row][column] !== 0) &&
             (Playing.get(socket.room).board[row][column] !== "Obstacle") &&
             (Playing.get(socket.room).board[row][column] !== socket.id)
           ) {
@@ -701,7 +704,7 @@ function handle_win(socket:any,win_rows:any,win_columns:any,winner_socket_id:any
   for (let i = 0; i < Playing.get(socket.room).players.length; i++) {
       if (i != winner_index) {
         const username=username_by_socket_id.get(Playing.get(socket.room).players[i])
-        db_ops.game_ops.set_game_result_by_username(username,Playing.get(socket.room).game_mode,"loss")
+        db_ops.game_ops.set_game_result_by_username(username,Playing.get(socket.room).game_mode,"lost")
       }
   }
   

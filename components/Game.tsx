@@ -94,6 +94,17 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
             const yy = divide(yz, g_cellSize);
             if (gameData.selected_bonus !== "") {
                 socket.emit('use_bonus', yy, xx, gameData.selected_bonus);
+                if(gameData.selected_bonus === "mine" && Game_Board[yy][xx] === 0) {
+                    setGameData((prevState) => {
+                        const bonuses=prevState.bonuses
+                        bonuses["mine"]-=1
+                        return {
+                            ...prevState,
+                            selected_bonus:"",
+                            bonuses: bonuses,
+                          }
+                    });
+                 }
             } else {
                 if (Game_Board[yy][xx] === 0) {
                     //    make_move(yy,xx,gameData.your_player_idx)
@@ -178,10 +189,17 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
                 }
                 break;
         }
-        console.log("bonus used", data);
+        console.log("bonus used", bonus_name);
         if (gameData.your_player_idx===player_idx) {
-            Selected_Bonus = undefined;
-            store.commit("change_bonus_amount_by",{data:bonus_name,amount:-1})
+            setGameData((prevState) => {
+                const bonuses=prevState.bonuses
+                bonuses[bonus_name]-=1
+                return {
+                    ...prevState,
+                    selected_bonus:"",
+                    bonuses: bonuses,
+                  }
+            });
         }
     });
 
@@ -567,19 +585,17 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
     }
 }
 
-let socket;
-let wss_server_url
-let options
-let query
+
 function send_message(msg){
     socket.emit('send_message',msg)
 }
+let socket
+let query
 function try_to_reconnect(){
     if(window.sessionStorage.getItem("guest_username")){
-        options.query=`guest_username=${window.sessionStorage.getItem("guest_username")}`
+        socket.io.opts.query=`guest_username=${window.sessionStorage.getItem("guest_username")}`
     }
-    socket = io.connect(wss_server_url,options)
-    socket.emit("find_game",query)
+    socket.connect()
 }
 export default function Game(props) {
     const router=useRouter();
@@ -619,8 +635,8 @@ export default function Game(props) {
         if (Object.entries(query).length===0) {
             return;
         }
-        wss_server_url="ws://localhost:8443"
-        options={transports: ["websocket"]}
+        const wss_server_url="ws://localhost:8443"
+        const options={transports: ["websocket"]}
         if(window.sessionStorage.getItem("guest_username")){
           options.query=`guest_username=${window.sessionStorage.getItem("guest_username")}`
         }
@@ -682,6 +698,7 @@ export default function Game(props) {
         socket.on('error', function(error) {
             if(error==="not authed"){
                 if(!(window.sessionStorage.getItem("guest_username"))){
+                    socket.disconnect();
                     handleOpenSetGuestUsernameModal()
                 }
             }
@@ -691,8 +708,7 @@ export default function Game(props) {
         socket.on('disconnect', function(error) {
             generate_msg("You was disconnected due to afk","Server","text-danger");
          });
-
-        socket.emit("find_game",query)
+         socket.emit("find_game",query)
         game(socket,canvasRef.current,setMargin,setGameData,game_over,query.gm)
       },[router]);
     return (

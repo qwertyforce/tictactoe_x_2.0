@@ -128,6 +128,8 @@ async function set_game_result_by_username(username:string,game_mode:string,resu
             query+=".draws"
             break;   
     }
+    console.log(username)
+    console.log(query)
     const collection = client.db(db_main).collection("users");
     collection.updateOne({username:username}, { $inc: {[query]:1} })
 }
