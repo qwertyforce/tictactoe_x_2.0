@@ -2,7 +2,7 @@ import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button'
 
 
-export default function GameOverModal(props) {
+export default function GameOverModal(props:any) {
     const play_again=()=>{
         location.reload()
     }
