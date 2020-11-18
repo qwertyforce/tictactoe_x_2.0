@@ -1,10 +1,5 @@
 import Col from 'react-bootstrap/Col'
 import Row from 'react-bootstrap/Row'
-import Form from 'react-bootstrap/Form'
-import ListGroup from 'react-bootstrap/ListGroup'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faUserAlt } from '@fortawesome/free-solid-svg-icons'
-import styles from "../styles/GameInfo.module.css"
 import chat_styles from "../styles/Chat.module.css"
 import { useEffect, useState,useRef, Fragment } from 'react'
 import GameOverModal from './GameOverModal'
@@ -13,14 +8,14 @@ import { useRouter } from 'next/router'
 import Chat from '../components/Chat'
 import SetGuestUsernameModal from "./SetGuestUsernameModal"
 
-function divide(numerator, denominator) {
+function divide(numerator:number, denominator:number) {
     const remainder = numerator % denominator;
     const quotient = (numerator - remainder) / denominator;
     return quotient;
 }
 
-let gameData;
-function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
+let gameData:any;
+function game(socket:any,canvas:any,setMargin:any,setGameData:any,game_over:any,game_mode:number){
     console.log("Game")
     let used_cells_for_bonus: any[]=[]
     const BLOCK_COLOR = "rgba(155,155,155,0.7)"
@@ -68,7 +63,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
     let prev_player_idx:number;
     let prev_move_column:number;
     let prev_move_row:number;
-    let timer 
+    let timer:NodeJS.Timer
     init_grid()
 
     socket.on('Map_Load', function(data:any) {
@@ -85,7 +80,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         timer=setInterval(timer_Func, 1000)
     });
 
-    c.addEventListener('click', function(ev) {
+    c.addEventListener('click', function(ev:MouseEvent) {
         if (gameData.current_player_idx === gameData.your_player_idx && !Paused) {
             const of = c.getBoundingClientRect();
             const xz = ev.clientX - of.left;
@@ -95,7 +90,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
             if (gameData.selected_bonus !== "") {
                 socket.emit('use_bonus', yy, xx, gameData.selected_bonus);
                 if(gameData.selected_bonus === "mine" && Game_Board[yy][xx] === 0) {
-                    setGameData((prevState) => {
+                    setGameData((prevState:any) => {
                         const bonuses=prevState.bonuses
                         bonuses["mine"]-=1
                         return {
@@ -139,7 +134,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
     function timer_Func() {
         // console.log(gameData.time)
         if (gameData.time > 0) {
-            setGameData((prevState) => ({
+            setGameData((prevState:any) => ({
                 ...prevState,
                 time: prevState.time - 1,
             }));
@@ -154,8 +149,8 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         Move_transition();
     });
 
-    socket.on('bonus_used', function(bonus_name, row, column, player_socket_id) {
-        const player_idx=gameData.players.findIndex((el)=>el.socket_id===player_socket_id)
+    socket.on('bonus_used', function(bonus_name:string, row:number, column:number, player_socket_id:string) {
+        const player_idx=gameData.players.findIndex((el:any)=>el.socket_id===player_socket_id)
         switch (bonus_name) {
             case 'set_block':
                 Game_Board[row][column] = "Obstacle";
@@ -178,7 +173,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
                 clear_cell(column, row);
                 console.log(colorOfplayer(player_idx));
                 ctx.fillStyle = colorOfplayer(player_idx);
-                const figure = figureOfplayer(player_idx);
+                const figure:any = figureOfplayer(player_idx);
                 figure(column, row)
                 drawBox(column, row);
                 if(gameData.your_player_idx===player_idx && check_for_bonus(Game_Board,row,column)){
@@ -191,7 +186,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         }
         console.log("bonus used", bonus_name);
         if (gameData.your_player_idx===player_idx) {
-            setGameData((prevState) => {
+            setGameData((prevState:any) => {
                 const bonuses=prevState.bonuses
                 bonuses[bonus_name]-=1
                 return {
@@ -203,12 +198,12 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         }
     });
 
-    socket.on('player_left', function (socket_id) {
-        const player_idx=gameData.players.findIndex((el)=>el.socket_id===socket_id)
+    socket.on('player_left', function (socket_id:string) {
+        const player_idx=gameData.players.findIndex((el:any)=>el.socket_id===socket_id)
         if (gameData.current_player_idx === player_idx) {
             Move_transition();
         }
-        setGameData((prevState) => {
+        setGameData((prevState:any) => {
             const players = prevState.players
             players[player_idx].disconnected=true
             return {
@@ -219,7 +214,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         });
     });
 
-    function check_for_bonus(Board,row,column){
+    function check_for_bonus(Board:number[][],row:number,column:number){
         const Directions = get_directions_bonus(Board, row, column)
         console.log(Directions)
         for (let i = 0; i < 4; i++) {
@@ -240,12 +235,12 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
     function Move_transition() {
         clearInterval(timer);
         console.log("MOVE TRANSITION")
-            setGameData((prevState) => ({
+            setGameData((prevState:any) => ({
                 ...prevState,
                 time: time_for_move,
               }));
         
-         setGameData((prevState) => {
+         setGameData((prevState:any) => {
             if (prevState.current_player_idx === prevState.players.length - 1) {
                 prevState.current_player_idx = 0;
                  while (prevState.players[prevState.current_player_idx].disconnected) {
@@ -266,7 +261,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
          timer = setInterval(timer_Func, 1000);
      }
      
-     function get_vector(i){
+     function get_vector(i:number){
         switch(i){
             case 0:
                 return [1,0]
@@ -279,10 +274,10 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         }
     }
     
-    function check_directions(arr,i,figures_to_win:number) {
-        const vector=get_vector(i)
+    function check_directions(arr:any[],i:number,figures_to_win:number) {
+        const vector:any=get_vector(i)
         const reference_point=arr[arr.length-1]
-        let comp_func;
+        let comp_func:any;
         switch(figures_to_win){
             case 3:
                 comp_func=check3
@@ -321,27 +316,27 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
       }
 
      function get_directions(Board:any, x:number, y:number,figures_to_win:number) {
-        const Directions = [[],[],[],[]];
+        const Directions:any = [[],[],[],[]];
         const Rows=21
         const Columns=21
-        let dir0=-1
-        let dir1=-1
-        let dir2=-1
-        let dir3=-1
+        let dir0:number[]=[]
+        let dir1:number[]=[]
+        let dir2:number[]=[]
+        let dir3:number[]=[]
         for (let i = -(figures_to_win-1); i < figures_to_win; i++) {
             if (x + i >= 0 && x + i <= Rows - 1) {
-                if(dir0===-1){dir0=[x+i,y]}
+                if(dir0.length===0){dir0.push(x+i,y)}
                 Directions[0].push(Board[x + i][y])
                 if (y + i >= 0 && y + i <= Columns - 1) {
-                    if(dir2===-1){dir2=[x+i,y+i]}
+                    if(dir2.length===0){dir2.push(x+i,y+i)}
                     Directions[2].push(Board[x + i][y + i])
                 }
             }
             if (y + i >= 0 && y + i <= Columns - 1) {
-                if(dir1===-1){dir1=[x,y+i]}
+                if(dir1.length===0){dir1.push(x,y+i)}
                 Directions[1].push(Board[x][y + i])
                 if (x - i >= 0 && x - i <= Rows - 1) {
-                    if(dir3===-1){dir3=[x-i,y+i]}
+                    if(dir3.length===0){dir3.push(x-i,y+i)}
                     Directions[3].push(Board[x - i][y + i])
                 }
             }
@@ -359,13 +354,13 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         const pieces_in_a_row=3
         const Rows=21
         const Columns=21
-        let dir0=-1
-        let dir1=-1
-        let dir2=-1
-        let dir3=-1
+        let dir0:number[]=[]
+        let dir1:number[]=[]
+        let dir2:number[]=[]
+        let dir3:number[]=[]
         for (let i = -(pieces_in_a_row-1); i < pieces_in_a_row; i++) {
             if (x + i >= 0 && x + i <= Rows - 1) {
-                if(dir0===-1){dir0=[x+i,y]}
+                if(dir0.length===0){dir0.push(x+i,y)}
                 if(used_cells_for_bonus.find((el)=>el.row===(x + i)&&el.column===(y))){
                     Directions[0].push(-1)
                 }else{
@@ -373,7 +368,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
                 }
                 
                 if (y + i >= 0 && y + i <= Columns - 1) {
-                    if(dir2===-1){dir2=[x+i,y+i]}
+                    if(dir2.length===0){dir2.push(x+i,y+i)}
                     if(used_cells_for_bonus.find((el)=>el.row===(x + i)&&el.column===(y + i))){
                         Directions[2].push(-1)
                     }else{
@@ -382,14 +377,14 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
                 }
             }
             if (y + i >= 0 && y + i <= Columns - 1) {
-                if(dir1===-1){dir1=[x,y+i]}
+                if(dir1.length===0){dir1.push(x,y+i)}
                 if (used_cells_for_bonus.find((el) => el.row === (x) && el.column === (y + i))) {
                     Directions[1].push(-1)
                 } else {
                     Directions[1].push(Board[x][y + i])
                 }
                 if (x - i >= 0 && x - i <= Rows - 1) {
-                    if(dir3===-1){dir3=[x-i,y+i]}
+                    if(dir3.length===0){dir3.push(x-i,y+i)}
                     if (used_cells_for_bonus.find((el) => el.row === (x-i) && el.column === (y + i))) {
                         Directions[3].push(-1)
                     } else {
@@ -406,13 +401,12 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
     }
 
 
-     function check_win(Board, x, y) {
+     function check_win(Board:any, x:number, y:number) {
         const Directions = get_directions(Board, x, y,FiguresToWin)
         console.log(Directions)
         for (let i = 0; i < 4; i++) {
             const res=check_directions(Directions[i],i,FiguresToWin)
             if (res) {
-                console.log("1241412412")
                 const xs=res[0]
                 const ys=res[1]
                 console.log(xs,ys)
@@ -423,14 +417,14 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
     }
   
 
-    socket.on('On_move', function(row, column, socket_id) {
-        const player_idx=gameData.players.findIndex((el)=>el.socket_id===socket_id)
+    socket.on('On_move', function(row:number, column:number, socket_id:string) {
+        const player_idx=gameData.players.findIndex((el:any)=>el.socket_id===socket_id)
         console.log(player_idx)
         make_move(row,column,player_idx)
     })
 
     socket.on('get_bonus', function(bonus:string) {
-        setGameData((prevState) => {
+        setGameData((prevState:any) => {
             const bonuses=prevState.bonuses
             bonuses[bonus]+=1
             return {
@@ -440,15 +434,15 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         });
     })
 
-    socket.on('win_detected', function(win_rows, win_columns, winner_socket_id) {
-        const player_idx=gameData.players.findIndex((el)=>el.socket_id===winner_socket_id)
+    socket.on('win_detected', function(win_rows:number[], win_columns:number[], winner_socket_id:string) {
+        const player_idx=gameData.players.findIndex((el:any)=>el.socket_id===winner_socket_id)
         Paused = true;
         clearInterval(timer);
         draw_winning_line(win_rows,win_columns,player_idx)
         game_over((player_idx===gameData.your_player_idx)?"won":"lost")
     })
     
-    function make_move(row, column, player_idx) {
+    function make_move(row:number, column:number, player_idx:number) {
         if ((prev_move_column !== null) && (prev_move_column !== undefined)) {
             ctx.fillStyle = colorOfplayer(prev_player_idx);
             drawBox(prev_move_column, prev_move_row);
@@ -458,7 +452,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         prev_player_idx = player_idx;
         console.log(Game_Board)
         Game_Board[row][column] = (player_idx+1); // 0 is reserved for blank space
-        const set_figure = figureOfplayer(player_idx);
+        const set_figure:any = figureOfplayer(player_idx);
         set_figure(column,row);
         console.log(prev_move_row,prev_move_column)
         if(gameData.your_player_idx===player_idx && check_for_bonus(Game_Board,row,column)){
@@ -473,7 +467,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         }
     }
 
-    function check_draw(Game_Board){
+    function check_draw(Game_Board:number[][]){
         for(let row=0;row<Rows;row++){
             for(let column=0;column<Columns;column++){
                 if(Game_Board[row][column]===0){
@@ -484,7 +478,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         return true
     }
 
-    function colorOfplayer(player_idx) {
+    function colorOfplayer(player_idx:number) {
         const color=gameData.players[player_idx].color
         switch (color) {
             case 'blue':
@@ -498,33 +492,33 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         };
     }
    
-    function figureOfplayer(player_idx) {
+    function figureOfplayer(player_idx:number) {
         const figure=gameData.players[player_idx].figure
         switch (figure) {
             case "circle":
-                return (column, row) => {
+                return (column:number, row:number) => {
                     drawCircle(column, row);
                 };
             case "triangle":
-                return (column, row) => {
+                return (column:number, row:number) => {
                     drawTriangle(column, row);
                 };
             case "square":
-                return (column, row) => {
+                return (column:number, row:number) => {
                     drawSquare(column, row);
                 };
             case "cross":
-                return (column, row) => {
+                return (column:number, row:number) => {
                     drawCross(column, row);
                 };
         };
     }
 
-    function drawSquare(x, y) {
+    function drawSquare(x:number, y:number) {
         const k = Math.round(g_cellSize / 4);
         ctx.strokeRect(x * g_cellSize + k + offset, y * g_cellSize + k + offset, g_cellSize - (k * 2), g_cellSize - (k * 2));
     };
-    function drawTriangle(x, y) {
+    function drawTriangle(x:number, y:number) {
         const x1 = x * g_cellSize + (g_cellSize / 2) + offset;
         const y1 = y * g_cellSize + (g_cellSize / 4) + offset;
         const x2 = x * g_cellSize + (g_cellSize / 5) + offset;
@@ -538,7 +532,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         ctx.closePath();
         ctx.stroke();
     };
-    function drawCross(x, y) {
+    function drawCross(x:number, y:number) {
         const k = Math.round(g_cellSize / 2) + offset;
         const midx = x * g_cellSize + k;
         const midy = y * g_cellSize + k;
@@ -553,7 +547,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         ctx.closePath();
         ctx.stroke();
     };
-    function drawCircle(x, y) {
+    function drawCircle(x:number, y:number) {
         const k = Math.round(g_cellSize / 2) + offset;
         ctx.beginPath();
         ctx.arc(x * g_cellSize + k, y * g_cellSize + k, g_cellSize/3.5, 0, Math.PI * 2, true);
@@ -561,12 +555,12 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         ctx.stroke();
     };
 
-    function drawBox (x, y) {
+    function drawBox (x:number, y:number) {
         ctx.fillRect(x * g_cellSize + offset + lineWidth/2, y * g_cellSize + offset + lineWidth/2, g_cellSize - lineWidth, g_cellSize - lineWidth);
     };
     
-    function draw_winning_line(win_rows, win_columns, player_idx) {
-        const set_figure = figureOfplayer(player_idx);
+    function draw_winning_line(win_rows:number[], win_columns:number[], player_idx:number) {
+        const set_figure:any = figureOfplayer(player_idx);
         for (let i = 0; i < (win_rows.length); i++) {
             clear_cell(win_columns[i],win_rows[i]);
             set_figure(win_columns[i], win_rows[i]);
@@ -575,7 +569,7 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
         }
     }
 
-    function clear_cell(x, y) {
+    function clear_cell(x:number, y:number) {
         if (true) {
             ctx.fillStyle = "rgb(" + 255 + "," + 255 + "," + 255 + ")";
         } else {
@@ -586,28 +580,28 @@ function game(socket,canvas,setMargin,setGameData,game_over,game_mode){
 }
 
 
-function send_message(msg){
+function send_message(msg:string){
     socket.emit('send_message',msg)
 }
-let socket
-let query
+let socket:SocketIOClient.Socket
+let query:any
 function try_to_reconnect(){
     if(window.sessionStorage.getItem("guest_username")){
         socket.io.opts.query=`guest_username=${window.sessionStorage.getItem("guest_username")}`
     }
     socket.connect()
 }
-export default function Game(props) {
+export default function Game(props: { gameData: any; setGameData: any }) {
     const router=useRouter();
     const [openGameOverModal, setOpenGameOverModal] = useState(false);
-    const [gameResult, setGameResult] = useState(false);
+    const [gameResult, setGameResult] = useState("");
     const handleCloseGameOverModal = () => setOpenGameOverModal(false);
 
     const [openSetGuestUsernameModal, setSetGuestUsernameModal] = useState(false);
     const handleCloseSetGuestUsernameModal = () => setSetGuestUsernameModal(false);
     const handleOpenSetGuestUsernameModal = () => setSetGuestUsernameModal(true);
 
-    const game_over=(result)=>{
+    const game_over=(result:string)=>{
         setGameResult(result)
         setOpenGameOverModal(true)
     }
@@ -622,7 +616,7 @@ export default function Game(props) {
                 <div className={chat_styles.username + " " + color}>{`${username}: `}</div>
                 <div className={chat_styles.cm_msg_text}>{msg}</div>
             </div>)
-            return [...prev_messages, message]
+            return [...prev_messages, message] as any
         })
         if (document.getElementsByClassName(chat_styles.chat_logs)[0]) {
             document.getElementsByClassName(chat_styles.chat_logs)[0].scrollTop = document.getElementsByClassName(chat_styles.chat_logs)[0].scrollHeight
@@ -631,12 +625,13 @@ export default function Game(props) {
     const [margin, setMargin] = useState("0px");
 
     useEffect(() => {
+        
         query=router.query
         if (Object.entries(query).length===0) {
             return;
         }
         const wss_server_url="ws://localhost:8443"
-        const options={transports: ["websocket"]}
+        const options:any={transports: ["websocket"]}
         if(window.sessionStorage.getItem("guest_username")){
           options.query=`guest_username=${window.sessionStorage.getItem("guest_username")}`
         }
@@ -645,43 +640,43 @@ export default function Game(props) {
         if(query.gm){ query.gm=parseInt(query.gm)}
         if(query.duel){ query.duel=parseInt(query.duel)}
         console.log(query)
-        socket.on('players_waiting', function(current_player_count) {
-            setGameData((prevState) => ({
+        socket.on('players_waiting', function(current_player_count:number) {
+            setGameData((prevState:any) => ({
                 ...prevState,
                 current_player_count: current_player_count,
               }));
          });
-         socket.on('get_usernames_colors_figures', function(usernames_colors_figures) {
+         socket.on('get_usernames_colors_figures', function(usernames_colors_figures:any) {
             console.log(usernames_colors_figures)
-            setGameData((prevState) => ({
+            setGameData((prevState:any) => ({   
                 ...prevState,
-                your_player_idx:usernames_colors_figures.findIndex((el)=>el.socket_id===socket.io.engine.id),
+                your_player_idx:usernames_colors_figures.findIndex((el:any)=>el.socket_id===(socket.io as any).engine.id),
                 players: usernames_colors_figures,
               }));
          });
 
-         socket.on('get_first_turn_player_idx', function(current_player_idx) {
-            setGameData((prevState) => ({
+         socket.on('get_first_turn_player_idx', function(current_player_idx:number) {
+            setGameData((prevState:any) => ({
                 ...prevState,
                 current_player_idx: current_player_idx,
               }));
          });
 
-        socket.on('message_received', function (username, msg) {
+        socket.on('message_received', function (username:string, msg:string) {
             let color;
-             console.log(gameData.players.findIndex((el) => el.username===username))
+             console.log(gameData.players.findIndex((el:any) => el.username===username))
             if (username !== "Server") {
-                switch (gameData.players.findIndex((el) => el.username===username)) {
-                    case 0:
+                switch (gameData.players.find((el:any) => el.username===username)?.color) {
+                    case "green":
                         color = "text-success";
                         break;
-                    case 1:
-                        color = chat_styles.text_blue
+                    case "light_blue":
+                        color = chat_styles.text_light_blue
                         break;
-                    case 2:
+                    case "orange":
                         color = "text-warning";
                         break;
-                    case 3:
+                    case "blue":
                         color = "text-primary";
                         break;
                     default:
@@ -695,7 +690,7 @@ export default function Game(props) {
             generate_msg(msg.trim(), username, color);
         });
 
-        socket.on('error', function(error) {
+        socket.on('error', function(error:string) {
             if(error==="not authed"){
                 if(!(window.sessionStorage.getItem("guest_username"))){
                     socket.disconnect();
@@ -705,7 +700,8 @@ export default function Game(props) {
             alert(error);
         });
 
-        socket.on('disconnect', function(error) {
+        socket.on('disconnect', function(error:string) {
+            console.log(error)
             generate_msg("You was disconnected due to afk","Server","text-danger");
          });
          socket.emit("find_game",query)
