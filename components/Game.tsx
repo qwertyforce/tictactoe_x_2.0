@@ -172,7 +172,7 @@ function game(socket: any, canvas: any, setMargin: any, setGameData: any, game_o
         const set_figure: any = figureOfplayer(player_idx);
         set_figure(column, row);
         console.log(prev_move_row, prev_move_column)
-        if (gameData.your_player_idx === player_idx && check_for_bonus(Game_Board, row, column)) {
+        if (gameData.your_player_idx === player_idx && check_for_bonus(Game_Board, row, column) && game_mode===2) {
             socket.emit("get_bonus", row, column)
         }
         if (gameData.your_player_idx === player_idx && check_win(Game_Board, prev_move_row, prev_move_column)) {
@@ -571,7 +571,7 @@ function game(socket: any, canvas: any, setMargin: any, setGameData: any, game_o
                 const figure: any = figureOfplayer(player_idx);
                 figure(column, row)
                 drawBox(column, row);
-                if (gameData.your_player_idx === player_idx && check_for_bonus(Game_Board, row, column)) {
+                if (gameData.your_player_idx === player_idx && check_for_bonus(Game_Board, row, column) && game_mode===2) {
                     socket.emit("get_bonus", row, column)
                 }
                 if (gameData.your_player_idx === player_idx && check_win(Game_Board, prev_move_row, prev_move_column)) {
