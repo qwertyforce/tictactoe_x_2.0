@@ -6,7 +6,7 @@ import db_ops from 'server/helpers/db_ops'
 export default function Profile(props) {
   return (
     <div>
-      <NavBar />
+      <NavBar authed={true}/>
       <h1>{`Hello, ${props.username}`}</h1>
       <h1>Matchmaking games</h1>
       <Table striped bordered hover size="sm" responsive="sm">

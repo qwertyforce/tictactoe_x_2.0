@@ -1,12 +1,9 @@
-import Head from 'next/head'
 import Container from 'react-bootstrap/Container' 
 import Row from 'react-bootstrap/Row' 
-import dynamic from 'next/dynamic'
-
 import GameInfo from '../components/GameInfo'
 import GameOffline from '../components/GameOffline'
 import NavBar from '../components/NavBar'
-import { useState,useRef,forwardRef,useMemo} from 'react'
+import { useState,useRef,useMemo, Fragment, useEffect} from 'react'
 
 function randomInteger(min, max) {
   var rand = min + Math.random() * (max + 1 - min);
@@ -32,7 +29,14 @@ function generate_players(){
   return players
 }
 
-function PlayOffline(props) {
+function useMounted() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  return mounted
+}
+
+export default function PlayOffline(props) {
+  const isMounted = useMounted()
   const GameInfoRef = useRef(null)
   const players = useMemo(generate_players,[])
   const [gameData, setGameData] = useState({
@@ -51,21 +55,23 @@ function PlayOffline(props) {
       <NavBar />
       <Container fluid>
         <Row>
-          <GameInfo gameData={gameData} />
-          <GameOffline gameData={gameData} setGameData={setGameData} />
+          {(isMounted ? (
+            <Fragment>
+              <GameInfo gameData={gameData} />
+              <GameOffline gameData={gameData} setGameData={setGameData} />
+            </Fragment>
+          ) : (null))}
         </Row>
       </Container>
     </div>
   )
 }
 
-export default dynamic(() => Promise.resolve(PlayOffline), {
-  ssr: false
-})
-// export async function getServerSideProps(context) {
-//     return {
-//       props: {
-//           authed:  Boolean(context.req.session?.authed && context.req.session?.user_id) 
-//       }
-//   }
-// }
+ 
+export async function getServerSideProps(context) {
+  return {
+    props: {
+        authed:  Boolean(context.req.session?.authed && context.req.session?.user_id) 
+    }
+}
+}
