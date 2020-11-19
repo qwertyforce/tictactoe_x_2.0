@@ -92,6 +92,10 @@ function matchmaking(socket: any, lobby_size: number, game_mode: string) {
 function private_matchmaking(socket: any, Room: string, lobbysize: number, game_mode: string) {
   const Playing = socket.array_play
   const Opened = socket.array_open
+  if(Playing.get(Room) !== undefined){
+    socket.emit("message_received","Server","Game with this password already exists")
+    socket.disconnect(true)
+  }
   if (Opened.get(Room) !== undefined) {
     if (Opened.get(Room).players.length < lobbysize - 1) {
       join_lobby(socket, Room, Opened)
