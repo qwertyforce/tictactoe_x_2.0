@@ -201,6 +201,10 @@ socketio.use(async function (socket: any, next) {
             return next(err);
           }
           const username = (socket.handshake as any).session.username
+          if(username===""){
+            err = new Error("Set your username");
+            return next(err);
+          }
           if (socket_id_by_username.get(username) === undefined) {
             socket.username = (socket.handshake as any).session.username
             socket_id_by_username.set(username, socket.id)
