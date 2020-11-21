@@ -130,11 +130,26 @@ async function set_game_result_by_username(username:string,game_mode:string,resu
     }
     console.log(username)
     console.log(query)
+    let query_obj={[query]:1}
+    if (game_mode.includes("m_")) {
+        query_obj["matchmaking_games"]=1
+        if(result==="won"){
+            query_obj["matchmaking_wins"]=1
+        }
+    }
     const collection = client.db(db_main).collection("users");
-    collection.updateOne({username:username}, { $inc: {[query]:1} })
+    collection.updateOne({username:username}, { $inc: query_obj })
 }
 
-
+async function get_leaderboard() {
+    const collection = client.db(db_main).collection("users");
+    const top_users = collection.aggregate([
+        {$project:{_id:0,username:1,matchmaking_games:1,matchmaking_wins:1}},
+        { $sort: { "matchmaking_wins": -1 } },
+        { $limit: 10 },
+    ])
+    return top_users.toArray()
+}
 ////////////////////////////////////////PASSWORD RECOVERY
 async function update_user_password_by_id(id:string,password:string):Promise<void> {
     updateDocument("users", {id: id},{password:password})
@@ -191,6 +206,8 @@ async function create_new_user_activated(email:string, pass:string) {
         email: email,
         id: id,
         password: pass,
+        matchmaking_wins:0,
+        matchmaking_games:0,
         private_stats:{
             classic:{wins:0,losses:0,draws:0},
             classic_duel:{wins:0,losses:0,draws:0},
@@ -214,6 +231,8 @@ async function create_new_user_activated_github(oauth_id:string) {
     insertDocuments("users", [{
         oauth_id: oauth_id,
         id: id,
+        matchmaking_wins:0,
+        matchmaking_games:0,
         private_stats:{
             classic:{wins:0,losses:0,draws:0},
             classic_duel:{wins:0,losses:0,draws:0},
@@ -238,6 +257,8 @@ async function create_new_user_activated_google(oauth_id:string,email:string) {
         oauth_id: oauth_id,
         email_google:email,
         id: id,
+        matchmaking_wins:0,
+        matchmaking_games:0,
         private_stats:{
             classic:{wins:0,losses:0,draws:0},
             classic_duel:{wins:0,losses:0,draws:0},
@@ -295,7 +316,8 @@ async function create_new_user_not_activated(email:string, pass:string, token:st
 
 export default {
     game_ops:{
-        set_game_result_by_username
+        set_game_result_by_username,
+        get_leaderboard
     },
     password_recovery:{
         update_user_password_by_id,
