@@ -13,8 +13,15 @@ import { faGoogle, faGithub } from '@fortawesome/free-brands-svg-icons'
 import { faPlay, faEnvelopeOpen, faUserSecret } from '@fortawesome/free-solid-svg-icons'
 
 import { Fragment, useState,useEffect } from 'react'
+function useMounted() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  return mounted
+}
+
 
 export default function Home(props:any) {
+  const isMounted = useMounted()
   const [openGameModesModal, setGameModesModal] = useState(false);
   const handleCloseGameModesModal = () => setGameModesModal(false);
   const handleOpenGameModesModal = () => setGameModesModal(true);
@@ -67,9 +74,12 @@ export default function Home(props:any) {
       <Container>
         <h1 className="display-1  text-center">Tic Tac Toe X</h1>
         <h3 className="text-center ">A multiplayer tic tac toe  game</h3>
-        <div className="d-flex justify-content-center mt-5 fadeInRight" style={{ flexWrap: 'wrap' }}>
-          {buttons()}
-        </div>
+        {((isMounted) ? (
+          <div className="d-flex justify-content-center mt-5 fadeInRight" style={{ flexWrap: 'wrap' }}>
+            {buttons()}
+          </div>
+        ) : (null))
+        }
         <EmailSignIn open={openSignIn} handleClose={handleCloseSignIn} handleOpenSignUp={handleOpenSignUp} />
         <EmailSignUp open={openSignUp} handleClose={handleCloseSignUp} />
         <GameModesModal open={openGameModesModal} handleClose={handleCloseGameModesModal} />
@@ -80,7 +90,6 @@ export default function Home(props:any) {
   )
 }
 export async function getServerSideProps(context:any) {
-  console.log(context.req.session)
   return {
     props: {
       authed: Boolean(context.req.session?.authed && context.req.session?.user_id),
