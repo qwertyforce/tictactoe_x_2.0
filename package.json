@@ -5,7 +5,8 @@
     "dev": "nodemon",
     "build_server": "tsc --project tsconfig.server.json",
     "build": "next build && tsc --project tsconfig.server.json",
-    "start": "cross-env NODE_ENV=production node dist/index.js"
+    "start": "cross-env NODE_ENV=production node dist/server/index.js",
+    "start_ws": "cross-env NODE_ENV=production node dist/server/ws_game_server.js"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^1.2.32",
