@@ -723,7 +723,7 @@ export default function Game(props: { gameData: any; setGameData: any }) {
         });
         socket.emit("find_game", query)
         game(socket, canvasRef.current, setMargin, setGameData, game_over, query.gm)
-    }, [router]);
+    }, []);
     return (
         <Fragment>
             <Col md={7} style={{ padding: 0 }}>

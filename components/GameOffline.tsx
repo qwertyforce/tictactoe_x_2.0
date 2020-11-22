@@ -27,10 +27,7 @@ function game(canvas:any,setMargin:any,setGameData:any,game_over:any){
         make_move(e.data.bestmove.i, e.data.bestmove.j,1)
     }
     const Game_Board = new Array(21).fill(null).map(() => new Array(21).fill(0))
-    const Time_for_move = parseInt(prompt("Enter the time for ai to think (in seconds)")||"0")*1000
-    if (Time_for_move === 0 || isNaN(Time_for_move)) {
-        location.reload();
-    }
+    const Time_for_move = gameData.time_for_ai_move
     const time_for_ai=Time_for_move/1000
     const time_for_human=Time_for_move/10
     const c = canvas;
@@ -386,7 +383,7 @@ function game(canvas:any,setMargin:any,setGameData:any,game_over:any){
         drawBox(x, y);
     }
 }
-
+let started=false
 export default function Game(props:any) {
     const [openGameOverModal, setOpenGameOverModal] = useState(false);
     const [gameResult, setGameResult] = useState("");
@@ -400,8 +397,12 @@ export default function Game(props:any) {
     const canvasRef = useRef(null)
     const [margin, setMargin] = useState("0px");
     useEffect(() => {
-        game(canvasRef.current,setMargin,setGameData,game_over)
-      },[]);
+        if(props.gameData.time_for_ai_move>0 && !started){
+            started=true
+            console.log(props.gameData.time_for_ai_move)
+            game(canvasRef.current,setMargin,setGameData,game_over)
+        }
+      },[props.gameData]);
     return (
         <Col  md={9} style={{ padding: 0 }}>
             <Row className="justify-content-center" style={{ marginTop: margin, marginBottom: margin}}>
