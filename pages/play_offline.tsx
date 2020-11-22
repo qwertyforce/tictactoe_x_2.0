@@ -5,7 +5,7 @@ import GameOffline from '../components/GameOffline'
 import NavBar from '../components/NavBar'
 import { useState,useRef,useMemo, Fragment, useEffect} from 'react'
 
-function randomInteger(min, max) {
+function randomInteger(min:number, max:number) {
   var rand = min + Math.random() * (max + 1 - min);
   rand = Math.floor(rand);
   return rand;
@@ -35,7 +35,7 @@ function useMounted() {
   return mounted
 }
 
-export default function PlayOffline(props) {
+export default function PlayOffline(_props:any) {
   const isMounted = useMounted()
   const GameInfoRef = useRef(null)
   const players = useMemo(generate_players,[])
@@ -68,7 +68,7 @@ export default function PlayOffline(props) {
 }
 
  
-export async function getServerSideProps(context) {
+export async function getServerSideProps(context:any) {
   return {
     props: {
         authed:  Boolean(context.req.session?.authed && context.req.session?.user_id) 

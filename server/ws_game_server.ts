@@ -5,6 +5,8 @@ import connectMongo from 'connect-mongo';
 import config from '../config/config'
 import db_ops from "./helpers/db_ops";
 import moment from "moment";
+// import https from "https"
+// import fs from "fs"
 const MongoStore = connectMongo(session);
 const ses_midleware = session({
   secret: config.session_secret,
@@ -20,6 +22,12 @@ const ses_midleware = session({
     ttl: 14 * 24 * 60 * 60
   }) // = 14 days. Default
 })
+// const server = https.createServer({
+//   key: fs.readFileSync('privkey.pem'),
+//   cert: fs.readFileSync('fullchain.pem')
+// });
+// const socketio = sktio.listen(server)
+// server.listen(8443);
 const socketio = sktio.listen(8443)
 const cookieParser = cookie_parse(config.session_secret);
 const username_by_socket_id = new Map()
@@ -92,10 +100,6 @@ function matchmaking(socket: any, lobby_size: number, game_mode: string) {
 function private_matchmaking(socket: any, Room: string, lobbysize: number, game_mode: string) {
   const Playing = socket.array_play
   const Opened = socket.array_open
-  if(Playing.get(Room) !== undefined){
-    socket.emit("message_received","Server","Game with this password already exists")
-    socket.disconnect(true)
-  }
   if (Opened.get(Room) !== undefined) {
     if (Opened.get(Room).players.length < lobbysize - 1) {
       join_lobby(socket, Room, Opened)
@@ -147,6 +151,11 @@ function run_lobby(socket: any, Room: string, Opened: any, Playing: any, lobby_s
 }
 
 function create_lobby(socket: any, Room: string, Opened: any, game_mode: string) {
+  if(socketio.sockets.adapter.rooms[Room]!==undefined){
+    socket.emit("message_received","Server","Game with this password already exists")
+    socket.disconnect(true)
+    return
+  }
   const map = JSON.parse(JSON.stringify(Maps[randomInteger(0, Maps.length - 1)]));
   Opened.set(Room, {
     players: [socket.id],
@@ -230,7 +239,6 @@ socketio.on('connection', function (socket: any) {
   console.log(socket.username)
   console.log(socket.handshake.address);
 
-
   socket.on('send_message', function (message: any) {
     if (socket.room) {
       socketio.in(socket.room).emit('message_received', socket.username, message);
@@ -246,6 +254,11 @@ socketio.on('connection', function (socket: any) {
     if (query?.pass && typeof query?.pass === "string") { //private game'
       let lobby_size: number;
       let game_mode: string;
+      if(!isNaN(query.pass)){
+        socket.emit("message_received","Server","Password can't be a number")
+        socket.disconnect(true)
+        return 
+      }
       if (query?.gm === 1 || query?.gm === 2) {
         if (query?.gm === 1) {
           socket.classic = 1;
@@ -391,6 +404,7 @@ socketio.on('connection', function (socket: any) {
       if (moment().diff(Playing.get(socket.room).last_move_time, 'milliseconds') >= 45000) {
         console.log((socketio.sockets.connected[Turn] as any).afk)
         if ((socketio.sockets.connected[Turn] as any).afk === 1) {
+          socketio.sockets.connected[Turn].emit("message_received","Server","You was disconnected due to afk")
           socketio.sockets.connected[Turn].disconnect(true)
           return
         }
@@ -540,12 +554,20 @@ socketio.on('connection', function (socket: any) {
     if (isDraw) {
       console.log("DRAW DETECTED")
       socketio.in(socket.room).emit('draw_detected');
-      for (let i = 0; i < Playing.get(socket.room).players.length; i++) {
-        const username = username_by_socket_id.get(Playing.get(socket.room).players[i])
-        db_ops.game_ops.set_game_result_by_username(username, Playing.get(socket.room).game_mode, "draw")
-      }
+      const game_mode=Playing.get(socket.room).game_mode
+      const Players=Playing.get(socket.room).players
+      const isPrivate=Playing.get(socket.room).game_mode.includes("p_")
+      Playing.delete(socket.room)
       socketio.in(socket.room).emit('message_received', "Server", "Draw");
-      socket.array_play.delete(socket.room)
+      for (let i = 0; i < Players.length; i++) {
+        const socket_id = Players[i]
+        if (isPrivate) {
+          socketio.sockets.connected[socket_id].emit("message_received", "Server", "Game is over. You have been disconnected from the chat.")
+          socketio.sockets.connected[socket_id].disconnect(true)
+        }
+        const username = username_by_socket_id.get(Players[i])
+        db_ops.game_ops.set_game_result_by_username(username, game_mode, "draw")
+      }
     }
   });
 
@@ -706,12 +728,20 @@ function handle_win(socket: any, win_rows: any, win_columns: any, winner_socket_
   socketio.in(socket.room).emit('win_detected', win_rows, win_columns, winner_socket_id);
   const winner_username = username_by_socket_id.get(Playing.get(socket.room).players[winner_index])
   db_ops.game_ops.set_game_result_by_username(winner_username, Playing.get(socket.room).game_mode, "won")
-  for (let i = 0; i < Playing.get(socket.room).players.length; i++) {
-    if (i != winner_index) {
-      const username = username_by_socket_id.get(Playing.get(socket.room).players[i])
-      db_ops.game_ops.set_game_result_by_username(username, Playing.get(socket.room).game_mode, "lost")
-    }
-  }
+  const game_mode=Playing.get(socket.room).game_mode
+  const Players=Playing.get(socket.room).players
+  const isPrivate=Playing.get(socket.room).game_mode.includes("p_")
   socketio.in(socket.room).emit('message_received', "Server", socket.username + " won the game");
   Playing.delete(socket.room)
+  for (let i = 0; i < Players.length; i++) {
+    const socket_id=Players[i]
+    if(isPrivate){
+      socketio.sockets.connected[socket_id].emit("message_received","Server","Game is over. You have been disconnected from the chat.")
+      socketio.sockets.connected[socket_id].disconnect(true)
+    }
+    if (i != winner_index) {
+      const username = username_by_socket_id.get(socket_id)
+      db_ops.game_ops.set_game_result_by_username(username, game_mode, "lost")
+    }
+  }
 }

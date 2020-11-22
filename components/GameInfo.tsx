@@ -5,13 +5,12 @@ import ListGroup from 'react-bootstrap/ListGroup'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUserAlt,faTimes,faCircle,faCaretUp,faSquare} from '@fortawesome/free-solid-svg-icons'
 import styles from "../styles/GameInfo.module.css"
-import { useState } from 'react'
 
-export default function GameInfo(props) {
+export default function GameInfo(props:any) {
     const GameData=props.gameData
     const setGameData=props.setGameData
     // console.log(GameData)
-    const usernames = GameData.players.map((player,idx) => {
+    const usernames = GameData.players.map((player:any,idx:number) => {
         let disconnected=""
         if(player.disconnected){
             disconnected=" (Disconnected)"
@@ -35,12 +34,12 @@ export default function GameInfo(props) {
         }
     }
     // console.log(props)
-    const SelectBonus = (e) => {
+    const SelectBonus = (e:any) => {
         const selected_bonus=(GameData.selected_bonus === e.target.id ? "" : e.target.id)
         if(GameData.bonuses[selected_bonus]===0){
             return
         }
-        setGameData((prevState) => ({
+        setGameData((prevState:any) => ({
             ...prevState,
             selected_bonus: selected_bonus,
           }));

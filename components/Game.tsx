@@ -7,6 +7,7 @@ import io from 'socket.io-client';
 import { useRouter } from 'next/router'
 import Chat from '../components/Chat'
 import SetGuestUsernameModal from "./SetGuestUsernameModal"
+import config from "../config/config"
 
 function divide(numerator: number, denominator: number) {
     const remainder = numerator % denominator;
@@ -202,7 +203,7 @@ function game(socket: any, canvas: any, setMargin: any, setGameData: any, game_o
 
     ///////////////////////////////////////////////////////////CHECK_FOR_WIN
 
-    function check_win(Board: any, x: number, y: number) {
+    function check_win(Board: number[][], x: number, y: number) {
         const Directions = get_directions(Board, x, y, FiguresToWin)
         console.log(Directions)
         for (let i = 0; i < 4; i++) {
@@ -647,7 +648,7 @@ export default function Game(props: { gameData: any; setGameData: any }) {
         if (Object.entries(query).length === 0) {
             return;
         }
-        const wss_server_url = "ws://localhost:8443"
+        const wss_server_url = config.ws_server_url
         const options: any = { transports: ["websocket"] }
         if (window.sessionStorage.getItem("guest_username")) {
             options.query = `guest_username=${window.sessionStorage.getItem("guest_username")}`
@@ -719,7 +720,6 @@ export default function Game(props: { gameData: any; setGameData: any }) {
 
         socket.on('disconnect', function (error: string) {
             console.log(error)
-            generate_msg("You was disconnected due to afk", "Server", "text-danger");
         });
         socket.emit("find_game", query)
         game(socket, canvasRef.current, setMargin, setGameData, game_over, query.gm)

@@ -3,7 +3,7 @@ import Table from 'react-bootstrap/Table'
 import db_ops from 'server/helpers/db_ops'
 
 
-export default function Profile(props) {
+export default function Profile(props:any) {
   return (
     <div>
       <NavBar authed={true}/>
@@ -85,7 +85,7 @@ export default function Profile(props) {
     </div>
   )
 }
-export async function getServerSideProps(context) {
+export async function getServerSideProps(context:any) {
   console.log(context.req.session?.username)
   const authed = Boolean(context.req.session?.authed && context.req.session?.user_id)
   const has_username = Boolean(context.req.session?.username !== "")

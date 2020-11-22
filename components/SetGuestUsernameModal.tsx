@@ -2,15 +2,11 @@ import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form'
 import { useState } from 'react'
-import { useRouter } from 'next/router'
-import axios from 'axios';
-import config from '../config/config'
 
-export default function SetGuestUsernameModal(props) {
-    const router = useRouter()
+export default function SetGuestUsernameModal(props:any) {
     const [isInvalid, setIsInvalid] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
-    const handleSubmit = (event) => {
+    const handleSubmit = (event:any) => {
         event.preventDefault();
         event.stopPropagation();
         const formData = new FormData(event.target)

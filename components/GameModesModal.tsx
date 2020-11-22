@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/router'
 
 
-function generate_id(length) {
+function generate_id(length:number) {
     let result = '';
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const charactersLength = characters.length;
@@ -15,18 +15,18 @@ function generate_id(length) {
     return result;
 }
 
-export default function GameOverModal(props) {
+export default function GameOverModal(props:any) {
     const router = useRouter()
     const [gameMode, setGameMode] = useState("classic");
     const [privGameCheckBox, setPrivGameCheckbox] = useState(false);
     const [duelGameCheckBox, setDuelGameCheckbox] = useState(false);
-    const privGameCheckBoxChange = (e) => {
+    const privGameCheckBoxChange = () => {
         setPrivGameCheckbox(!privGameCheckBox)
     };
     const setDuelGameCheckboxChange = () => {
         setDuelGameCheckbox(!duelGameCheckBox)
     };
-    const handleChange = e => {
+    const handleChange = (e:any) => {
         console.log(e.target.value);
         setGameMode(e.target.value);
     };

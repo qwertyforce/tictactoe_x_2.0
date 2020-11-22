@@ -1,4 +1,3 @@
-import Head from 'next/head'
 import Container from 'react-bootstrap/Container'
 import Button from 'react-bootstrap/Button'
 import NavBar from '../components/NavBar'
@@ -15,7 +14,7 @@ import { faPlay, faEnvelopeOpen, faUserSecret } from '@fortawesome/free-solid-sv
 
 import { Fragment, useState,useEffect } from 'react'
 
-export default function Home(props) {
+export default function Home(props:any) {
   const [openGameModesModal, setGameModesModal] = useState(false);
   const handleCloseGameModesModal = () => setGameModesModal(false);
   const handleOpenGameModesModal = () => setGameModesModal(true);
@@ -80,7 +79,7 @@ export default function Home(props) {
     </div>
   )
 }
-export async function getServerSideProps(context) {
+export async function getServerSideProps(context:any) {
   console.log(context.req.session)
   return {
     props: {

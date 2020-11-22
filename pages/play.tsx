@@ -12,7 +12,7 @@ function useMounted() {
   return mounted
 }
 
-export default function Play(props) {
+export default function Play(props:any) {
   const isMounted = useMounted()
   const router=useRouter()
   const GameInfoRef = useRef(null)
@@ -43,7 +43,7 @@ export default function Play(props) {
     setGameData((prevState) => ({
       ...prevState,
       max_player_count: (router.query.duel)?2:4,
-      mode:(parseInt(router.query.gm)===1)?"classic":"modern"
+      mode:(parseInt((router.query as any).gm)===1)?"classic":"modern"
     }));
   },[router])
 
@@ -64,7 +64,7 @@ export default function Play(props) {
   )
 }
 
-export async function getServerSideProps(context) {
+export async function getServerSideProps(context:any) {
     return {
       props: {
           authed:  Boolean(context.req.session?.authed && context.req.session?.user_id) 

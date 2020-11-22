@@ -13,5 +13,6 @@ export default {
     gmail_password:"sbuLBh9rAV8XD2",
     mongodb_url:"mongodb://localhost/",
     server_port:"80",
-    session_secret:"ghuieorifigyfuu9u3i45jtr73490548t7ht"
+    session_secret:"ghuieorifigyfuu9u3i45jtr73490548t7ht",
+    ws_server_url:"ws://localhost:8443"
 }

@@ -1,7 +1,7 @@
 import Navbar from 'react-bootstrap/Navbar'
 import Nav from 'react-bootstrap/Nav'
 import {Fragment,memo} from 'react'
-const nav_bar=memo((props)=>{
+const nav_bar=memo((props:any)=>{
     const profile_and_stats = () => {
         if (props.authed) {
             return (
@@ -27,7 +27,7 @@ const nav_bar=memo((props)=>{
             </Navbar.Collapse>
         </Navbar>
     )
-},(prev,next)=>{
+},(_prev,_next)=>{
     // console.log(prev)
     return true
 })

@@ -6,12 +6,12 @@ import { useRouter } from 'next/router'
 import axios from 'axios';
 import config from '../config/config'
 
-export default function SetUsernameModal(props) {
+export default function SetUsernameModal(props:any) {
     const router = useRouter()
     const [isInvalid, setIsInvalid] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [isLoading, setLoading] = useState(false);
-    const handleSubmit = (event) => {
+    const handleSubmit = (event:any) => {
         event.preventDefault();
         event.stopPropagation();
         setLoading(true);
@@ -37,7 +37,7 @@ export default function SetUsernameModal(props) {
                     method: "post",
                     data: username_data,
                     withCredentials: true
-                }).then((resp) => {
+                }).then((_resp) => {
                     router.push("/");
                     setLoading(false);
                     props.handleClose()

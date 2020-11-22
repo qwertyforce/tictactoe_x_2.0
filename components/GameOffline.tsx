@@ -1,21 +1,16 @@
 import Col from 'react-bootstrap/Col'
 import Row from 'react-bootstrap/Row'
-import Form from 'react-bootstrap/Form'
-import ListGroup from 'react-bootstrap/ListGroup'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faUserAlt } from '@fortawesome/free-solid-svg-icons'
-import styles from "../styles/GameInfo.module.css"
 import { useEffect, useState,useRef } from 'react'
 import GameOverModal from './GameOverModal'
 
-function divide(numerator, denominator) {
+function divide(numerator:number, denominator:number) {
     const remainder = numerator % denominator;
     const quotient = (numerator - remainder) / denominator;
     return quotient;
 }
 
-let gameData;
-function game(canvas,setMargin,setGameData,game_over){
+let gameData:any;
+function game(canvas:any,setMargin:any,setGameData:any,game_over:any){
     console.log("Game")
     const Engine = new Worker("mtdf(10)_worker.js");
     Engine.onmessage = function (e) {
@@ -78,26 +73,26 @@ function game(canvas,setMargin,setGameData,game_over){
     ctx.scale(scale, scale);
     ctx.lineWidth = lineWidth;
 
-    let prev_player_idx;
-    let prev_move_column;
-    let prev_move_row;
-    let timer 
+    let prev_player_idx:number;
+    let prev_move_column:number;
+    let prev_move_row:number;
+    let timer:any 
     init_grid()
     if(gameData.current_player_idx===0){
-        setGameData((prevState) => ({
+        setGameData((prevState:any) => ({
             ...prevState,
             time: time_for_human,
         }));
         timer=setInterval(timer_Func, 1000)
     }else{
-        setGameData((prevState) => ({
+        setGameData((prevState:any) => ({
             ...prevState,
             time: time_for_ai,
         }));
         make_move(10,10,1);
     }
     
-    c.addEventListener('click', function(ev) {
+    c.addEventListener('click', function(ev:MouseEvent) {
         if (gameData.current_player_idx === gameData.your_player_idx && !Paused) {
             const of = c.getBoundingClientRect();
             const xz = ev.clientX - of.left;
@@ -133,7 +128,7 @@ function game(canvas,setMargin,setGameData,game_over){
     function timer_Func() {
         // console.log(gameData.time)
         if (gameData.time > 0) {
-            setGameData((prevState) => ({
+            setGameData((prevState:any) => ({
                 ...prevState,
                 time: prevState.time - 1,
             }));
@@ -149,17 +144,17 @@ function game(canvas,setMargin,setGameData,game_over){
     function Move_transition() {
         clearInterval(timer);
         if(gameData.current_player_idx===gameData.your_player_idx){
-            setGameData((prevState) => ({
+            setGameData((prevState:any) => ({
                 ...prevState,
                 time: time_for_ai,
               }));
         }else{
-            setGameData((prevState) => ({
+            setGameData((prevState:any) => ({
                 ...prevState,
                 time: time_for_human,
               }));
         } 
-         setGameData((prevState) => {
+         setGameData((prevState:any) => {
             if (prevState.current_player_idx === prevState.players.length - 1) {
                 prevState.current_player_idx = 0;
                  while (prevState.players[prevState.current_player_idx] === null) {
@@ -180,7 +175,7 @@ function game(canvas,setMargin,setGameData,game_over){
          timer = setInterval(timer_Func, 1000);
      }
      
-     function get_vector(i){
+     function get_vector(i:number){
         switch(i){
             case 0:
                 return [1,0]
@@ -192,9 +187,9 @@ function game(canvas,setMargin,setGameData,game_over){
                 return [-1,1]
         }
     }
-    function check_directions(arr,i) {
-        const vector=get_vector(i)
-        const reference_point=arr[arr.length-1]
+    function check_directions(arr:number[],i:number) {
+        const vector:any=get_vector(i)
+        const reference_point:any=arr[arr.length-1]
         for (let i = 0; i < arr.length - (4+1); i++) {
             if (arr[i] !== 0) {
                 if (arr[i] === arr[i + 1] && arr[i] === arr[i + 2] && arr[i] === arr[i + 3] && arr[i] === arr[i + 4]) {
@@ -212,26 +207,28 @@ function game(canvas,setMargin,setGameData,game_over){
         return false
     }
 
-     function get_directions(Board, x, y) {
-        const Directions = [[],[],[],[]];
-        let dir0=-1
-        let dir1=-1
-        let dir2=-1
-        let dir3=-1
-        for (let i = -4; i < 5; i++) {
+    function get_directions(Board: any, x: number, y: number, figures_to_win: number) {
+        const Directions: any = [[], [], [], []];
+        const Rows = 21
+        const Columns = 21
+        let dir0: number[] = []
+        let dir1: number[] = []
+        let dir2: number[] = []
+        let dir3: number[] = []
+        for (let i = -(figures_to_win - 1); i < figures_to_win; i++) {
             if (x + i >= 0 && x + i <= Rows - 1) {
-                if(dir0===-1){dir0=[x+i,y]}
+                if (dir0.length === 0) { dir0.push(x + i, y) }
                 Directions[0].push(Board[x + i][y])
                 if (y + i >= 0 && y + i <= Columns - 1) {
-                    if(dir2===-1){dir2=[x+i,y+i]}
+                    if (dir2.length === 0) { dir2.push(x + i, y + i) }
                     Directions[2].push(Board[x + i][y + i])
                 }
             }
             if (y + i >= 0 && y + i <= Columns - 1) {
-                if(dir1===-1){dir1=[x,y+i]}
+                if (dir1.length === 0) { dir1.push(x, y + i) }
                 Directions[1].push(Board[x][y + i])
                 if (x - i >= 0 && x - i <= Rows - 1) {
-                    if(dir3===-1){dir3=[x-i,y+i]}
+                    if (dir3.length === 0) { dir3.push(x - i, y + i) }
                     Directions[3].push(Board[x - i][y + i])
                 }
             }
@@ -243,8 +240,8 @@ function game(canvas,setMargin,setGameData,game_over){
         return Directions
     }
 
-     function checkwin(Board, row, column,player_idx) {
-        const Directions = get_directions(Board, row, column)
+     function checkwin(Board:number[][], row:number, column:number,player_idx:number) {
+        const Directions = get_directions(Board, row, column,FiguresToWin)
         console.log(Directions)
         for (let i = 0; i < 4; i++) {
             const res=check_directions(Directions[i],i)
@@ -258,7 +255,7 @@ function game(canvas,setMargin,setGameData,game_over){
     }
 
     
-    function make_move(row, column, player_idx) {
+    function make_move(row:number, column:number, player_idx:number) {
         if ((prev_move_column !== null) && (prev_move_column !== undefined)) {
             ctx.fillStyle = colorOfplayer(prev_player_idx);
             drawBox(prev_move_column, prev_move_row);
@@ -269,7 +266,7 @@ function game(canvas,setMargin,setGameData,game_over){
         prev_player_idx = player_idx;
         console.log(Game_Board)
         Game_Board[row][column] = (player_idx === 0) ? -1 : 1;
-        const set_figure = figureOfplayer(player_idx);
+        const set_figure:any = figureOfplayer(player_idx);
         set_figure(column,row);
         console.log(prev_move_row,prev_move_column)
         if (checkwin(Game_Board,prev_move_row,prev_move_column,player_idx)) {
@@ -289,7 +286,7 @@ function game(canvas,setMargin,setGameData,game_over){
             }
         }
     }
-    function colorOfplayer(player_idx) {
+    function colorOfplayer(player_idx:number) {
         const color=gameData.players[player_idx].color
         switch (color) {
             case 'blue':
@@ -303,33 +300,33 @@ function game(canvas,setMargin,setGameData,game_over){
         };
     }
    
-    function figureOfplayer(player_idx) {
+    function figureOfplayer(player_idx:number) {
         const figure=gameData.players[player_idx].figure
         switch (figure) {
             case "circle":
-                return (column, row) => {
+                return (column:number, row:number) => {
                     drawCircle(column, row);
                 };
             case "triangle":
-                return (column, row) => {
+                return (column:number, row:number) => {
                     drawTriangle(column, row);
                 };
             case "square":
-                return (column, row) => {
+                return (column:number, row:number) => {
                     drawSquare(column, row);
                 };
             case "cross":
-                return (column, row) => {
+                return (column:number, row:number) => {
                     drawCross(column, row);
                 };
         };
     }
 
-    function drawSquare(x, y) {
+    function drawSquare(x:number, y:number) {
         const k = Math.round(g_cellSize / 4);
         ctx.strokeRect(x * g_cellSize + k + offset, y * g_cellSize + k + offset, g_cellSize - (k * 2), g_cellSize - (k * 2));
     };
-    function drawTriangle(x, y) {
+    function drawTriangle(x:number, y:number) {
         const x1 = x * g_cellSize + (g_cellSize / 2) + offset;
         const y1 = y * g_cellSize + (g_cellSize / 4) + offset;
         const x2 = x * g_cellSize + (g_cellSize / 5) + offset;
@@ -343,7 +340,7 @@ function game(canvas,setMargin,setGameData,game_over){
         ctx.closePath();
         ctx.stroke();
     };
-    function drawCross(x, y) {
+    function drawCross(x:number, y:number) {
         const k = Math.round(g_cellSize / 2) + offset;
         const midx = x * g_cellSize + k;
         const midy = y * g_cellSize + k;
@@ -358,7 +355,7 @@ function game(canvas,setMargin,setGameData,game_over){
         ctx.closePath();
         ctx.stroke();
     };
-    function drawCircle(x, y) {
+    function drawCircle(x:number, y:number) {
         const k = Math.round(g_cellSize / 2) + offset;
         ctx.beginPath();
         ctx.arc(x * g_cellSize + k, y * g_cellSize + k, g_cellSize/3.5, 0, Math.PI * 2, true);
@@ -366,12 +363,12 @@ function game(canvas,setMargin,setGameData,game_over){
         ctx.stroke();
     };
 
-    function drawBox (x, y) {
+    function drawBox (x:number, y:number) {
         ctx.fillRect(x * g_cellSize + offset + lineWidth/2, y * g_cellSize + offset + lineWidth/2, g_cellSize - lineWidth, g_cellSize - lineWidth);
     };
     
-    function draw_winning_line(win_rows, win_columns, player_idx) {
-        const set_figure = figureOfplayer(player_idx);
+    function draw_winning_line(win_rows:number[], win_columns:number[], player_idx:number) {
+        const set_figure:any = figureOfplayer(player_idx);
         for (let i = 0; i < (win_rows.length); i++) {
             clear_cell(win_columns[i],win_rows[i]);
             set_figure(win_columns[i], win_rows[i]);
@@ -380,7 +377,7 @@ function game(canvas,setMargin,setGameData,game_over){
         }
     }
 
-    function clear_cell(x, y) {
+    function clear_cell(x:number, y:number) {
         if (true) {
             ctx.fillStyle = "rgb(" + 255 + "," + 255 + "," + 255 + ")";
         } else {
@@ -390,11 +387,11 @@ function game(canvas,setMargin,setGameData,game_over){
     }
 }
 
-export default function Game(props) {
+export default function Game(props:any) {
     const [openGameOverModal, setOpenGameOverModal] = useState(false);
-    const [gameResult, setGameResult] = useState(false);
+    const [gameResult, setGameResult] = useState("");
     const handleCloseGameOverModal = () => setOpenGameOverModal(false);
-    const game_over=(result)=>{
+    const game_over=(result:string)=>{
         setGameResult(result)
         setOpenGameOverModal(true)
     }

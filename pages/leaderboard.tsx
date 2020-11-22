@@ -3,8 +3,8 @@ import Table from 'react-bootstrap/Table'
 import db_ops from 'server/helpers/db_ops'
 
 
-export default function Leaderboard(props) {
-  const users=props.leader_board.map((el)=>{
+export default function Leaderboard(props:any) {
+  const users=props.leader_board.map((el:any)=>{
     return(
       <tr>
       <td>{el.username}</td>
@@ -31,7 +31,7 @@ export default function Leaderboard(props) {
     </div>
   )
 }
-export async function getServerSideProps(context) {
+export async function getServerSideProps(context:any) {
   const leader_board=await db_ops.game_ops.get_leaderboard()
   console.log(leader_board)
   return {
