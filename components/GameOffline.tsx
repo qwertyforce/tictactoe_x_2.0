@@ -13,6 +13,8 @@ let gameData:any;
 function game(canvas:any,setMargin:any,setGameData:any,game_over:any){
     console.log("Game")
     const Engine = new Worker("mtdf(10)_worker.js");
+    const audio = new Audio('1.mp3');
+    audio.volume = 0.5;
     Engine.onmessage = function (e) {
         console.log(e.data.bestmove);
         console.log(`Cache Hits: ${e.data.CacheHits}`)
@@ -169,6 +171,9 @@ function game(canvas:any,setMargin:any,setGameData:any,game_over:any){
              }
              return {...prevState}
          })
+         if(gameData.current_player_idx === gameData.your_player_idx){
+            audio.play();
+         }
          timer = setInterval(timer_Func, 1000);
      }
      

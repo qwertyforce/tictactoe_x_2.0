@@ -32,6 +32,7 @@ export default function Play(props:any) {
       "mine":0,
     },
     selected_bonus:"",
+    play_sound:false,
     mode: "classic",
     GameInfoRef: GameInfoRef
   });
@@ -46,7 +47,16 @@ export default function Play(props:any) {
       mode:(parseInt((router.query as any).gm)===1)?"classic":"modern"
     }));
   },[router])
-
+  useEffect(() => {
+    if (isMounted) {
+      setGameData((prevState: any) => {
+        return {
+          ...prevState,
+          play_sound: Boolean(localStorage.getItem("sound"))
+        }
+      })
+    }
+  }, [isMounted])
   return (
     <div>
       <NavBar authed={props.authed}/>

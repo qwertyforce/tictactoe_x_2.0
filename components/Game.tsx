@@ -18,6 +18,8 @@ function divide(numerator: number, denominator: number) {
 let gameData: any;
 function game(socket: any, canvas: any, setMargin: any, setGameData: any, game_over: any, game_mode: number) {
     console.log("Game")
+    const audio = new Audio('1.mp3');
+    audio.volume = 0.5;
     const used_cells_for_bonus: any[] = []
     const Game_Board: any = []
     const time_for_move = 45
@@ -157,6 +159,9 @@ function game(socket: any, canvas: any, setMargin: any, setGameData: any, game_o
             }
             return { ...prevState }
         })
+        if(gameData.current_player_idx === gameData.your_player_idx){
+            audio.play();
+         }
         timer = setInterval(timer_Func, 1000);
     }
 

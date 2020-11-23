@@ -9,7 +9,6 @@ import styles from "../styles/GameInfo.module.css"
 export default function GameInfo(props:any) {
     const GameData=props.gameData
     const setGameData=props.setGameData
-    // console.log(GameData)
     const usernames = GameData.players.map((player:any,idx:number) => {
         let disconnected=""
         if(player.disconnected){
@@ -44,6 +43,16 @@ export default function GameInfo(props:any) {
             selected_bonus: selected_bonus,
           }));
     }
+    const toggle_sound=()=>{
+        setGameData((prevState: any) => {
+            const current_value=prevState.play_sound
+            localStorage.setItem("sound",(!current_value).toString())
+            return {
+              ...prevState,
+              play_sound: !current_value
+            }
+          })
+    }
     return (
         <Col md={2} style={{ padding: 0 }} ref={GameData.GameInfoRef}>
             <Card>
@@ -73,7 +82,7 @@ export default function GameInfo(props:any) {
             
             <Card>
                 <Card.Header>
-                    <Form.Check style={{ display: 'flex' }} inline label="Play sound when it is  your turn to play" type="checkbox" />
+                    <Form.Check name="sound_toggler" style={{ display: 'flex' }} inline checked={props.gameData.play_sound} onChange={toggle_sound} label="Play sound when it is  your turn to play" type="checkbox" />
                 </Card.Header>
             </Card>
         </Col>

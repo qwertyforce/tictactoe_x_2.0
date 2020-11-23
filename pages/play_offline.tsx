@@ -39,6 +39,7 @@ export default function PlayOffline(_props:any) {
   const [openSetAiTimeModal, setSetAiTimeModal] = useState(true);
   const handleCloseSetAiTimeModal = () => setSetAiTimeModal(false);
   const isMounted = useMounted()
+  
   const GameInfoRef = useRef(null)
   const players = useMemo(generate_players,[])
   const [gameData, setGameData] = useState({
@@ -49,10 +50,21 @@ export default function PlayOffline(_props:any) {
     time_for_ai_move:0,
     current_player_idx: randomInteger(0, players.length - 1),
     time: 0,
+    play_sound:false,
     mode: "classic",
     GameInfoRef: GameInfoRef
   });
-
+  useEffect(() => {
+    if (isMounted) {
+      setGameData((prevState: any) => {
+        return {
+          ...prevState,
+          play_sound: Boolean(localStorage.getItem("sound"))
+        }
+      })
+    }
+  }, [isMounted])
+  
   return (
     <div>
       <NavBar />
@@ -60,7 +72,7 @@ export default function PlayOffline(_props:any) {
         <Row>
           {(isMounted ? (
             <Fragment>
-              <GameInfo gameData={gameData} />
+              <GameInfo gameData={gameData} setGameData={setGameData}/>
               <GameOffline gameData={gameData} setGameData={setGameData} />
             </Fragment>
           ) : (null))}
