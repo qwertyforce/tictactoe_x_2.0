@@ -11,6 +11,12 @@ export default function Chat(props:any) {
         props.send_message(text.trim())
         setText("")
     }
+    const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.keyCode === 13 || e.which === 13) {
+            e.preventDefault()
+            send_msg();
+        }
+      };
     return (
         <Col md={3} style={{ padding: 0 }}>
             <div className={styles.chat_box}>
@@ -24,7 +30,7 @@ export default function Chat(props:any) {
                     </div>
                 </div>
                 <div className={styles.input_group}>
-                    <textarea className={styles.chat_input} onChange={handleChange}  value={text} placeholder="Send a message..." rows={2}></textarea>
+                    <textarea className={styles.chat_input} onChange={handleChange} onKeyPress={handleKeyPress}  value={text} placeholder="Send a message..." rows={2}></textarea>
                     <button className={styles.chat_submit} onClick={send_msg}>send</button>
                 </div>
             </div>
