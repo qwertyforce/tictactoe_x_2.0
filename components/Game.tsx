@@ -159,7 +159,7 @@ function game(socket: any, canvas: any, setMargin: any, setGameData: any, game_o
             }
             return { ...prevState }
         })
-        if(gameData.current_player_idx === gameData.your_player_idx){
+        if(gameData.current_player_idx === gameData.your_player_idx && gameData.play_sound){
             audio.play();
          }
         timer = setInterval(timer_Func, 1000);
@@ -519,6 +519,16 @@ function game(socket: any, canvas: any, setMargin: any, setGameData: any, game_o
         console.log(player_idx)
         make_move(row, column, player_idx)
     })
+
+    socket.on('On_move(mine)', function(row:number, column:number,  socket_id: string) {
+        const player_idx = gameData.players.findIndex((el: any) => el.socket_id === socket_id)
+        const figure:any = figureOfplayer(player_idx)
+        figure(column, row)
+        setTimeout(function() {
+            clear_cell(column, row)
+        }, 1000)
+        Move_transition()
+    });
 
     socket.on('get_bonus', function (bonus: string) {
         setGameData((prevState: any) => {

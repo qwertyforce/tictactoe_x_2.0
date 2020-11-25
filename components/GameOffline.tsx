@@ -171,7 +171,7 @@ function game(canvas:any,setMargin:any,setGameData:any,game_over:any){
              }
              return {...prevState}
          })
-         if(gameData.current_player_idx === gameData.your_player_idx){
+         if(gameData.current_player_idx === gameData.your_player_idx && gameData.play_sound){
             audio.play();
          }
          timer = setInterval(timer_Func, 1000);
