@@ -14,7 +14,7 @@ export default function SetAiTimeModal(props:any) {
         const time=parseInt(formDataObj.time.toString().trim())
         if(isNaN(time) || time<=0){
             setIsInvalid(true)
-            setErrorMessage("Number must be greater than 0")
+            setErrorMessage("Number must be an integer and greater than 0")
             return
         }
         props.handleClose()
