@@ -144,6 +144,7 @@ async function set_game_result_by_username(username:string,game_mode:string,resu
 async function get_leaderboard() {
     const collection = client.db(db_main).collection("users");
     const top_users = collection.aggregate([
+        {$match: {username:{$ne:""}}},
         {$project:{_id:0,username:1,matchmaking_games:1,matchmaking_wins:1}},
         { $sort: { "matchmaking_wins": -1 } },
         { $limit: 10 },

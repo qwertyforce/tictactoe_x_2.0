@@ -8,8 +8,8 @@ export default function Leaderboard(props:any) {
     return(
       <tr>
       <td>{el.username}</td>
-      <td>{el.matchmaking_games}</td>
       <td>{el.matchmaking_wins}</td>
+      <td>{el.matchmaking_games}</td>
     </tr>
     )
   })
