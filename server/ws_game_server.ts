@@ -387,7 +387,7 @@ socketio.on('connection', function (socket: any) {
         socketio.in(socket.room).emit("On_move(mine)", row, column, socket.id);
         Playing.get(socket.room).board[row][column] = 0;
         Move_transition(socket);
-        socketio.in(socket.room).emit('message_received', "Server", socket.username + " vzorvan na mine");
+        socketio.in(socket.room).emit('message_received', "Server", socket.username + " was blown up by a mine");
         return
       }
       Playing.get(socket.room).board[row][column] = socket.id;
